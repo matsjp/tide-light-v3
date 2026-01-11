@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+app/.venv/
+app/venv/
+app/env/
+*.egg-info/
+dist/
+build/
+*.sqlite
+*.sqlite-journal
+app/config.json.tmp
+
+# Node.js
+web/node_modules/
+web/dist/
+web/.vite/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local
+.env.production.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Misc
+*.bak
+*.tmp
+context.txt
+nul
+
+# Development
+.cache/
+.temp/

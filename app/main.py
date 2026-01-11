@@ -1,0 +1,117 @@
+import time
+from config_manager import ConfigManager
+from tide_cache_manager import TideCacheManager
+from tide_fetcher import TideFetcher
+from tide_update_scheduler import TideUpdateScheduler
+from light_controller import LightController
+from tide_calculator import TideCalculator
+from tide_visualizer import TideVisualizer
+from ble import BLEManager
+
+CONFIG_PATH = "config.json"
+DB_PATH = "tide_cache.sqlite"
+
+def on_config_changed(config, scheduler, visualizer):
+    lat = config["tide"]["location"]["latitude"]
+    lon = config["tide"]["location"]["longitude"]
+    brightness = config["led_strip"]["brightness"]
+    invert = config["led_strip"]["invert"]
+    pattern = config["color"]["pattern"]
+
+    print("Configuration updated:")
+    print(f"  Tide location: ({lat}, {lon})")
+    print(f"  LED brightness: {brightness}")
+    print(f"  LED invert: {invert}")
+    print(f"  LED pattern: {pattern}")
+
+    scheduler.on_config_updated(config)
+    visualizer.on_config_updated(config)
+
+def main():
+    print("Starting Tide Light...")
+
+    config_manager = ConfigManager(CONFIG_PATH)
+    config = config_manager.get_config()
+
+    cache = TideCacheManager(DB_PATH)  # Thread-safe SQLite
+    fetcher = TideFetcher()
+
+    # Check if location changed while offline (Case 4)
+    config_lat = config["tide"]["location"]["latitude"]
+    config_lon = config["tide"]["location"]["longitude"]
+    cached_location = cache.get_cached_location()
+    
+    if cached_location is not None:
+        cached_lat, cached_lon = cached_location
+        if cached_lat != config_lat or cached_lon != config_lon:
+            print("[Startup] Location changed while offline:")
+            print(f"  Cached location: ({cached_lat}, {cached_lon})")
+            print(f"  Config location: ({config_lat}, {config_lon})")
+            print("[Startup] Clearing old tide data...")
+            cache.invalidate_all()
+    else:
+        print("[Startup] No cached location found (first run or cache cleared)")
+
+    scheduler = TideUpdateScheduler(
+        cache_manager=cache,
+        tide_fetcher=fetcher,
+        config=config,
+        prefetch_days=7,
+        interval_days=7
+    )
+    scheduler.start()
+
+    # Initialize LED light system
+    print("Initializing LED strip...")
+    light = LightController(config)
+    light.begin()
+    
+    print("Initializing tide calculator...")
+    calculator = TideCalculator(cache)
+    
+    print("Starting tide visualizer...")
+    visualizer = TideVisualizer(
+        light_controller=light,
+        tide_calculator=calculator,
+        config=config
+    )
+    
+    # Connect scheduler and visualizer
+    scheduler.set_visualizer(visualizer)
+    
+    # Start visualizer
+    visualizer.start()
+    
+    # Register config listener
+    config_manager.register_listener(lambda cfg: on_config_changed(cfg, scheduler, visualizer))
+
+    # Initial fetch (will notify visualizer)
+    scheduler._run_once()
+
+    # Initialize BLE interface
+    print("Initializing BLE interface...")
+    ble_manager = BLEManager(
+        config_manager=config_manager,
+        tide_calculator=calculator,
+        tide_cache=cache,
+        config_path=CONFIG_PATH
+    )
+    ble_manager.start()
+
+    print("System initialized. Running main loop.")
+    print(f"  Current tide location: ({scheduler.current_lat}, {scheduler.current_lon})")
+    print(f"  LED pattern: {config['color']['pattern']}")
+    print(f"  LED brightness: {config['led_strip']['brightness']}")
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Shutting down Tide Light...")
+        ble_manager.stop()
+        visualizer.stop()
+        scheduler.stop()
+        light.cleanup()
+
+if __name__ == "__main__":
+    main()

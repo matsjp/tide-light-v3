@@ -1,0 +1,5 @@
+kartverket_tide_api
+rpi-ws281x
+rpi-ws281x-mock
+watchdog
+bluezero

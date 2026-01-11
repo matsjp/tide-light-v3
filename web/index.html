@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Web Bluetooth configuration interface for Tide Light">
+  <meta name="theme-color" content="#1e3a8a">
+  <title>Tide Light Config</title>
+  <link rel="stylesheet" href="/src/css/main.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="title">🌊 Tide Light Config</h1>
+      <div id="connection-status" class="connection-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">Not Connected</span>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Browser Support Warning -->
+      <div id="browser-warning" class="warning-banner" style="display: none;">
+        ⚠️ Web Bluetooth is not supported in this browser. Please use Chrome or Edge on Android/Desktop.
+      </div>
+
+      <!-- Connection Section -->
+      <section class="section" id="connection-section">
+        <button id="connect-btn" class="btn btn-primary btn-large">
+          Connect to Device
+        </button>
+        <p class="hint">Click to scan for Tide Light devices via Bluetooth</p>
+      </section>
+
+      <!-- Map Section -->
+      <section class="section" id="map-section" style="display: none;">
+        <h2 class="section-title">📍 Location</h2>
+        <div id="map" class="map-container"></div>
+        
+        <div class="coordinates-input">
+          <div class="input-group">
+            <label for="lat-input">Latitude</label>
+            <input type="number" id="lat-input" step="0.000001" placeholder="59.908559">
+          </div>
+          <div class="input-group">
+            <label for="lon-input">Longitude</label>
+            <input type="number" id="lon-input" step="000001" placeholder="10.73451">
+          </div>
+        </div>
+
+        <button id="current-location-btn" class="btn btn-secondary">
+          📍 Use Current Location
+        </button>
+
+        <div id="validation-status" class="validation-status"></div>
+      </section>
+
+      <!-- Configuration Section -->
+      <section class="section" id="config-section" style="display: none;">
+        <h2 class="section-title">💡 LED Settings</h2>
+        
+        <div class="form-group">
+          <label for="brightness-input">
+            Brightness
+            <span id="brightness-value" class="value-display">50</span>
+          </label>
+          <input type="range" id="brightness-input" min="0" max="255" value="50" class="slider">
+        </div>
+
+        <div class="form-group">
+          <label for="pattern-select">Pattern</label>
+          <select id="pattern-select" class="select-input">
+            <option value="none">None</option>
+            <option value="wave">Wave</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="wave-speed-group">
+          <label for="wave-speed-input">Wave Speed (seconds)</label>
+          <input type="number" id="wave-speed-input" min="0.1" max="5.0" step="0.1" value="0.5" class="number-input">
+        </div>
+
+        <div class="form-group">
+          <label for="led-count-input">LED Count</label>
+          <input type="number" id="led-count-input" min="3" max="255" value="60" class="number-input">
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="led-invert-input">
+            <span>Invert LED Strip</span>
+          </label>
+        </div>
+
+        <button id="apply-btn" class="btn btn-primary">Apply Changes</button>
+      </section>
+
+      <!-- Status Section -->
+      <section class="section" id="status-section" style="display: none;">
+        <h2 class="section-title">🌊 Current Tide State</h2>
+        
+        <div id="tide-status" class="status-card">
+          <div class="loading">Loading tide data...</div>
+        </div>
+
+        <h3 class="subsection-title">📦 Cache Info</h3>
+        <div id="cache-info" class="info-card"></div>
+
+        <h3 class="subsection-title">⚙️ System Info</h3>
+        <div id="system-info" class="info-card"></div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Tide Light v3 · Web Bluetooth Configuration</p>
+    </footer>
+  </div>
+
+  <!-- Notifications Container -->
+  <div id="notifications" class="notifications-container"></div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="spinner"></div>
+    <p id="loading-message">Loading...</p>
+  </div>
+
+  <script type="module" src="/src/js/main.js"></script>
+</body>
+</html>
