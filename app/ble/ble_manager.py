@@ -114,18 +114,18 @@ class BLEManager:
                 config_path=self._config_path
             )
         else:
-            # Lazy import real server (requires bluezero)
+            # Lazy import real server (requires pybleno)
             try:
-                from ble.ble_server import BLEServer
+                from ble.ble_server_pybleno import BLEServerPybleno
                 from ble.ble_config_handler import BLEConfigHandler
                 from ble.ble_status_provider import BLEStatusProvider
             except ImportError as e:
                 print(f"[BLE Manager] ERROR: Failed to import BLE libraries: {e}")
-                print("[BLE Manager] Make sure 'bluezero' is installed: pip install bluezero")
+                print("[BLE Manager] Make sure 'pybleno' is installed: pip install pybleno")
                 print("[BLE Manager] Or set 'bluetooth.use_fake_library' to true in config.json")
                 raise
             
-            print("[BLE Manager] Creating REAL BLE server with bluezero")
+            print("[BLE Manager] Creating REAL BLE server with pybleno")
             
             # Create dependencies
             config_handler = BLEConfigHandler(self._config_manager)
@@ -135,7 +135,7 @@ class BLEManager:
             )
             
             # Create and return real server
-            return BLEServer(
+            return BLEServerPybleno(
                 config_manager=self._config_manager,
                 config_handler=config_handler,
                 status_provider=status_provider
