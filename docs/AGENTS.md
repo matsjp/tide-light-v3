@@ -31,6 +31,25 @@ cd app
 python main.py
 ```
 
+## Platform Considerations
+
+### Windows Development
+
+When developing on Windows, be aware of the following:
+
+- **DO NOT use `/dev/null`** for output redirection in bash commands
+  - Windows does not have `/dev/null`
+  - Using `> /dev/null` or `2> nul` may create a literal file named `nul` in the project directory
+  - Instead, handle output in Python using `subprocess.DEVNULL` or capture output programmatically
+  
+- **Line Endings**: Git will convert LF to CRLF on Windows. This is normal and handled by Git's `core.autocrlf` setting.
+
+- **Path Separators**: Use `os.path.join()` or `pathlib.Path` for cross-platform path handling instead of hardcoding `/` or `\`.
+
+### Raspberry Pi Production
+
+The production environment is Linux-based (Raspberry Pi OS). Ensure all features work on both platforms during development.
+
 ## Build/Test Commands
 
 ### Running Tests
