@@ -13,14 +13,27 @@
     <!-- Header -->
     <header class="header">
       <h1 class="title">🌊 Tide Light Config</h1>
-      <div id="connection-status" class="connection-status">
-        <span class="status-dot" id="status-dot"></span>
-        <span class="status-text" id="status-text">Not Connected</span>
+      <div class="header-controls">
+        <div class="demo-mode-toggle">
+          <label class="toggle-label">
+            <input type="checkbox" id="demo-mode-checkbox">
+            <span class="toggle-text">Demo Mode</span>
+          </label>
+        </div>
+        <div id="connection-status" class="connection-status">
+          <span class="status-dot" id="status-dot"></span>
+          <span class="status-text" id="status-text">Not Connected</span>
+        </div>
       </div>
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
+      <!-- Demo Mode Banner -->
+      <div id="demo-mode-banner" class="demo-mode-banner" style="display: none;">
+        🎭 Demo Mode Active - Using simulated device
+      </div>
+
       <!-- Browser Support Warning -->
       <div id="browser-warning" class="warning-banner" style="display: none;">
         ⚠️ Web Bluetooth is not supported in this browser. Please use Chrome or Edge on Android/Desktop.

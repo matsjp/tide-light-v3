@@ -55,7 +55,7 @@ class StatusCharacteristic(Characteristic):
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             try:
-                status_json = self._status_provider.get_status()
+                status_json = self._status_provider.get_status_json()
                 data = json_to_bytes(status_json)
                 callback(Characteristic.RESULT_SUCCESS, data)
             except Exception as e:
@@ -105,7 +105,7 @@ class StatusCharacteristic(Characteristic):
         while not self._stop_notify.is_set():
             if self._updateValueCallback is not None:
                 try:
-                    status_json = self._status_provider.get_status()
+                    status_json = self._status_provider.get_status_json()
                     data = json_to_bytes(status_json)
                     self._updateValueCallback(data)
                     logging.debug("[Status Characteristic] Notification sent")

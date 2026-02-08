@@ -3,19 +3,28 @@
  */
 
 import { BLEManager } from './ble/ble-manager.js';
+import { BLEManagerMock } from './ble/ble-manager-mock.js';
 import { MapManager } from './map/map-manager.js';
 import { validateLocation, debounce } from './map/validator.js';
 import { showNotification, showError, showSuccess } from './utils/notifications.js';
 
 class TideLightApp {
   constructor() {
-    this.ble = new BLEManager();
+    // Check if demo mode is enabled
+    this.demoMode = localStorage.getItem('tide-light-demo-mode') === 'true';
+    
+    // Initialize appropriate BLE manager
+    this.ble = this.demoMode ? new BLEManagerMock() : new BLEManager();
+    
     this.map = null;
     this.currentConfig = null;
     this.validationState = { valid: false, validating: false };
 
-    // Check browser support
-    if (!BLEManager.isSupported()) {
+    // Update UI to show demo mode state
+    this.updateDemoModeUI();
+
+    // Check browser support (only if not in demo mode)
+    if (!this.demoMode && !BLEManager.isSupported()) {
       this.showBrowserWarning();
       document.getElementById('connect-btn').disabled = true;
       return;
@@ -37,6 +46,11 @@ class TideLightApp {
   }
 
   setupEventListeners() {
+    // Demo mode toggle
+    document.getElementById('demo-mode-checkbox').addEventListener('change', (e) => {
+      this.handleDemoModeToggle(e.target.checked);
+    });
+
     // Connection
     document.getElementById('connect-btn').addEventListener('click', () => this.handleConnect());
 
@@ -379,6 +393,30 @@ class TideLightApp {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${hours}h ${minutes}m`;
+  }
+
+  updateDemoModeUI() {
+    const checkbox = document.getElementById('demo-mode-checkbox');
+    const banner = document.getElementById('demo-mode-banner');
+    
+    checkbox.checked = this.demoMode;
+    
+    if (this.demoMode) {
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  handleDemoModeToggle(enabled) {
+    if (enabled) {
+      localStorage.setItem('tide-light-demo-mode', 'true');
+    } else {
+      localStorage.setItem('tide-light-demo-mode', 'false');
+    }
+    
+    // Reload page to apply changes
+    window.location.reload();
   }
 }
 
