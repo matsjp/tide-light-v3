@@ -367,24 +367,41 @@ export class BLEManager {
   async _loadCharacteristics() {
     const uuids = Object.values(CHAR_UUIDS);
     
+    console.log(`[BLE] Attempting to load ${uuids.length} characteristics`);
+    
     for (const uuid of uuids) {
       try {
         const char = await this.service.getCharacteristic(uuid);
         this.characteristics[uuid] = char;
+        console.log(`[BLE] ✓ Loaded characteristic ${uuid}`);
       } catch (error) {
-        console.warn(`[BLE] Could not get characteristic ${uuid}:`, error);
+        console.warn(`[BLE] ✗ Could not get characteristic ${uuid}:`, error.message);
       }
     }
 
-    console.log(`[BLE] Loaded ${Object.keys(this.characteristics).length} characteristics`);
+    console.log(`[BLE] Loaded ${Object.keys(this.characteristics).length}/${uuids.length} characteristics`);
+    
+    // Log which characteristics are missing
+    const missing = uuids.filter(uuid => !this.characteristics[uuid]);
+    if (missing.length > 0) {
+      console.warn(`[BLE] Missing characteristics:`, missing);
+    }
   }
 
   async _readString(uuid) {
     const char = this.characteristics[uuid];
     if (!char) throw new Error(`Characteristic ${uuid} not found`);
 
-    const value = await char.readValue();
-    return new TextDecoder().decode(value);
+    console.log(`[BLE] Reading string from characteristic ${uuid}`);
+    try {
+      const value = await char.readValue();
+      const decoded = new TextDecoder().decode(value);
+      console.log(`[BLE] Read ${decoded.length} bytes from ${uuid}`);
+      return decoded;
+    } catch (error) {
+      console.error(`[BLE] Error reading characteristic ${uuid}:`, error);
+      throw error;
+    }
   }
 
   async _writeString(uuid, value) {

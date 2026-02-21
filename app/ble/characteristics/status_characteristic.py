@@ -51,15 +51,20 @@ class StatusCharacteristic(Characteristic):
             offset: Byte offset (must be 0)
             callback: Callback function(result_code, data)
         """
+        logging.info(f"[Status Characteristic] Read request received, offset={offset}")
         if offset:
+            logging.warning(f"[Status Characteristic] Non-zero offset {offset}, rejecting")
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             try:
                 status_json = self._status_provider.get_status_json()
+                logging.info(f"[Status Characteristic] Status JSON generated: {status_json[:100]}...")
                 data = json_to_bytes(status_json)
+                logging.info(f"[Status Characteristic] Status data size: {len(data)} bytes")
                 callback(Characteristic.RESULT_SUCCESS, data)
+                logging.info("[Status Characteristic] Read request completed successfully")
             except Exception as e:
-                logging.exception(f"Status read error: {e}")
+                logging.exception(f"[Status Characteristic] Status read error: {e}")
                 callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
     
     def onSubscribe(self, maxValueSize, updateValueCallback):
