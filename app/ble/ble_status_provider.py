@@ -40,7 +40,8 @@ class BLEStatusProvider:
             JSON string with tide state, cache info, and system metrics
         """
         status = self._build_status_dict()
-        return json.dumps(status, indent=2)
+        # Use compact JSON (no indent) to minimize BLE packet size
+        return json.dumps(status)
     
     def _build_status_dict(self) -> Dict[str, Any]:
         """
