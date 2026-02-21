@@ -489,7 +489,7 @@ export class BLEManager {
       throw new Error('Device not connected');
     }
 
-    const characteristic = this.characteristics.get(CHAR_UUIDS.WIFI_NETWORKS);
+    const characteristic = this.characteristics[CHAR_UUIDS.WIFI_NETWORKS];
     if (!characteristic) {
       throw new Error('WiFi Networks characteristic not available');
     }
@@ -514,7 +514,7 @@ export class BLEManager {
       throw new Error('Device not connected');
     }
 
-    const characteristic = this.characteristics.get(CHAR_UUIDS.WIFI_SSID);
+    const characteristic = this.characteristics[CHAR_UUIDS.WIFI_SSID];
     if (!characteristic) {
       throw new Error('WiFi SSID characteristic not available');
     }
@@ -539,7 +539,7 @@ export class BLEManager {
       throw new Error('Device not connected');
     }
 
-    const characteristic = this.characteristics.get(CHAR_UUIDS.WIFI_PASSWORD);
+    const characteristic = this.characteristics[CHAR_UUIDS.WIFI_PASSWORD];
     if (!characteristic) {
       throw new Error('WiFi Password characteristic not available');
     }
@@ -563,7 +563,7 @@ export class BLEManager {
       throw new Error('Device not connected');
     }
 
-    const characteristic = this.characteristics.get(CHAR_UUIDS.WIFI_STATUS);
+    const characteristic = this.characteristics[CHAR_UUIDS.WIFI_STATUS];
     if (!characteristic) {
       throw new Error('WiFi Status characteristic not available');
     }
@@ -587,7 +587,7 @@ export class BLEManager {
       throw new Error('Device not connected');
     }
 
-    const characteristic = this.characteristics.get(CHAR_UUIDS.WIFI_STATUS);
+    const characteristic = this.characteristics[CHAR_UUIDS.WIFI_STATUS];
     if (!characteristic) {
       throw new Error('WiFi Status characteristic not available');
     }
