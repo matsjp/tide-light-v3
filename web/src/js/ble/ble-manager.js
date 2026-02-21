@@ -285,8 +285,26 @@ export class BLEManager {
       throw new Error('Status characteristic not found');
     }
 
-    // Start notifications
-    await char.startNotifications();
+    console.log('[BLE] Status characteristic found:', char);
+    console.log('[BLE] Status characteristic UUID:', char.uuid);
+    console.log('[BLE] Status characteristic properties:', char.properties);
+    
+    // Check if notifications are supported
+    if (!char.properties.notify) {
+      throw new Error('Status characteristic does not support notifications');
+    }
+
+    console.log('[BLE] Starting notifications on Status characteristic...');
+    try {
+      // Start notifications
+      await char.startNotifications();
+      console.log('[BLE] ✓ Notifications started successfully');
+    } catch (error) {
+      console.error('[BLE] ✗ Failed to start notifications:', error.message, error);
+      console.error('[BLE] Error name:', error.name);
+      console.error('[BLE] Error code:', error.code);
+      throw error;
+    }
 
     // Listen for changes
     char.addEventListener('characteristicvaluechanged', (event) => {
@@ -374,7 +392,16 @@ export class BLEManager {
       try {
         const char = await this.service.getCharacteristic(uuid);
         this.characteristics[uuid] = char;
-        console.log(`[BLE] ✓ Loaded: ${charName} (${uuid})`);
+        
+        // Extra logging for Status characteristic
+        if (uuid === CHAR_UUIDS.STATUS) {
+          console.log(`[BLE] ✓ Loaded: ${charName} (${uuid})`);
+          console.log(`[BLE]   Properties:`, char.properties);
+          console.log(`[BLE]   Notify supported:`, char.properties.notify);
+          console.log(`[BLE]   Read supported:`, char.properties.read);
+        } else {
+          console.log(`[BLE] ✓ Loaded: ${charName} (${uuid})`);
+        }
       } catch (error) {
         console.warn(`[BLE] ✗ Failed: ${charName} (${uuid}) - ${error.message}`);
       }

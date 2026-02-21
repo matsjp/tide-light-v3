@@ -302,12 +302,24 @@ class TideLightApp {
 
         // Try to subscribe to status updates (optional - don't fail if unavailable)
         try {
+          console.log('[App] Testing Status characteristic...');
+          
+          // Try reading first to see if characteristic works at all
+          console.log('[App] Attempting to read Status (before subscribe)...');
+          try {
+            const initialStatus = await this.ble.readStatus();
+            console.log('[App] ✓ Status read successfully:', initialStatus);
+            this.updateStatus(initialStatus);
+          } catch (readError) {
+            console.error('[App] ✗ Status read failed:', readError.message, readError);
+            throw new Error(`Status read failed: ${readError.message}`);
+          }
+          
+          // If read works, try subscribing
           console.log('[App] Subscribing to Status characteristic notifications...');
           await this.ble.subscribeToStatus((status) => this.updateStatus(status));
-          console.log('[App] Reading initial Status...');
-          const status = await this.ble.readStatus();
-          console.log('[App] Status read successfully:', status);
-          this.updateStatus(status);
+          console.log('[App] ✓ Successfully subscribed to Status notifications');
+          
         } catch (statusError) {
           console.error('[App] Status updates not available:', statusError.message, statusError);
           console.warn('[App] Tide state will not be displayed. This might be because:');
