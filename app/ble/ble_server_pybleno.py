@@ -119,6 +119,15 @@ class BLEServerPybleno:
             print(f"[BLE Server Pybleno] Advertising as '{self._device_name}'")
             print(f"[BLE Server Pybleno] Service UUID: {self._service_uuid}")
             
+            # Log characteristics in the service
+            if hasattr(self._service, 'characteristics'):
+                char_count = len(self._service.characteristics)
+                print(f"[BLE Server Pybleno] Registering service with {char_count} characteristics:")
+                for char in self._service.characteristics:
+                    char_uuid = char.get('uuid', 'unknown')
+                    char_props = char.get('properties', [])
+                    print(f"  - {char_uuid}: {char_props}")
+            
             # Register service
             self._bleno.setServices([self._service])
             print("[BLE Server Pybleno] Service registered successfully")
