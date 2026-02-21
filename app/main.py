@@ -1,4 +1,5 @@
 import time
+import logging
 from config_manager import ConfigManager
 from tide_cache_manager import TideCacheManager
 from tide_fetcher import TideFetcher
@@ -31,6 +32,21 @@ def on_config_changed(config, scheduler, visualizer, ldr):
     ldr.on_config_updated(config)
 
 def main():
+    # Configure logging
+    # Option 1: Debug for BLE only, Info for everything else
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # Enable DEBUG for BLE-related modules only
+    logging.getLogger('ble').setLevel(logging.DEBUG)
+    logging.getLogger('app.ble').setLevel(logging.DEBUG)
+    
+    # Option 2: To enable DEBUG for ALL modules, uncomment this line instead:
+    logging.getLogger().setLevel(logging.DEBUG)
+    
     print("Starting Tide Light...")
 
     config_manager = ConfigManager(CONFIG_PATH)
