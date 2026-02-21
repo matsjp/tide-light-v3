@@ -302,11 +302,18 @@ class TideLightApp {
 
         // Try to subscribe to status updates (optional - don't fail if unavailable)
         try {
+          console.log('[App] Subscribing to Status characteristic notifications...');
           await this.ble.subscribeToStatus((status) => this.updateStatus(status));
+          console.log('[App] Reading initial Status...');
           const status = await this.ble.readStatus();
+          console.log('[App] Status read successfully:', status);
           this.updateStatus(status);
         } catch (statusError) {
-          console.warn('[App] Status updates not available:', statusError);
+          console.error('[App] Status updates not available:', statusError.message, statusError);
+          console.warn('[App] Tide state will not be displayed. This might be because:');
+          console.warn('[App]   - Status characteristic is missing from device');
+          console.warn('[App]   - Device does not have tide data available');
+          console.warn('[App]   - BLE read failed (check Pi logs)');
           // Don't show error for missing status - it's optional
         }
 

@@ -89,13 +89,19 @@ export class WiFiManager {
    * Update WiFi status indicator
    */
   async _updateWifiStatus() {
-    if (!this._bleManager.isWifiAvailable()) return;
+    if (!this._bleManager.isWifiAvailable()) {
+      console.warn('[WiFi] WiFi characteristics not available');
+      return;
+    }
 
     try {
+      console.log('[WiFi] Reading WiFi Status characteristic...');
       const status = await this._bleManager.readWifiStatus();
+      console.log('[WiFi] WiFi Status:', status);
       this._displayWifiStatus(status);
     } catch (error) {
-      console.error('[WiFi] Error reading status:', error);
+      console.error('[WiFi] Error reading WiFi Status characteristic:', error.message, error);
+      console.warn('[WiFi] WiFi status will not be displayed');
     }
   }
 

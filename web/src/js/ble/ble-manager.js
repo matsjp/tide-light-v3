@@ -3,7 +3,7 @@
  * Handles device connection, characteristic reads/writes, and notifications
  */
 
-import { SERVICE_UUID, CHAR_UUIDS, ERROR_CODES, ERROR_MESSAGES } from './constants.js';
+import { SERVICE_UUID, CHAR_UUIDS, ERROR_CODES, ERROR_MESSAGES, getCharName } from './constants.js';
 
 export class BLEManager {
   constructor() {
@@ -370,36 +370,38 @@ export class BLEManager {
     console.log(`[BLE] Attempting to load ${uuids.length} characteristics`);
     
     for (const uuid of uuids) {
+      const charName = getCharName(uuid);
       try {
         const char = await this.service.getCharacteristic(uuid);
         this.characteristics[uuid] = char;
-        console.log(`[BLE] ✓ Loaded characteristic ${uuid}`);
+        console.log(`[BLE] ✓ Loaded: ${charName} (${uuid})`);
       } catch (error) {
-        console.warn(`[BLE] ✗ Could not get characteristic ${uuid}:`, error.message);
+        console.warn(`[BLE] ✗ Failed: ${charName} (${uuid}) - ${error.message}`);
       }
     }
 
-    console.log(`[BLE] Loaded ${Object.keys(this.characteristics).length}/${uuids.length} characteristics`);
+    console.log(`[BLE] Successfully loaded ${Object.keys(this.characteristics).length}/${uuids.length} characteristics`);
     
     // Log which characteristics are missing
     const missing = uuids.filter(uuid => !this.characteristics[uuid]);
     if (missing.length > 0) {
-      console.warn(`[BLE] Missing characteristics:`, missing);
+      console.warn(`[BLE] Missing ${missing.length} characteristics:`, missing.map(uuid => getCharName(uuid)));
     }
   }
 
   async _readString(uuid) {
     const char = this.characteristics[uuid];
-    if (!char) throw new Error(`Characteristic ${uuid} not found`);
+    const charName = getCharName(uuid);
+    if (!char) throw new Error(`Characteristic ${charName} not found`);
 
-    console.log(`[BLE] Reading string from characteristic ${uuid}`);
+    console.log(`[BLE] Reading ${charName}...`);
     try {
       const value = await char.readValue();
       const decoded = new TextDecoder().decode(value);
-      console.log(`[BLE] Read ${decoded.length} bytes from ${uuid}`);
+      console.log(`[BLE] ✓ Read ${decoded.length} bytes from ${charName}`);
       return decoded;
     } catch (error) {
-      console.error(`[BLE] Error reading characteristic ${uuid}:`, error);
+      console.error(`[BLE] ✗ Error reading ${charName}:`, error.message, error);
       throw error;
     }
   }
@@ -414,10 +416,19 @@ export class BLEManager {
 
   async _readUint8(uuid) {
     const char = this.characteristics[uuid];
-    if (!char) throw new Error(`Characteristic ${uuid} not found`);
+    const charName = getCharName(uuid);
+    if (!char) throw new Error(`Characteristic ${charName} not found`);
 
-    const value = await char.readValue();
-    return value.getUint8(0);
+    console.log(`[BLE] Reading ${charName}...`);
+    try {
+      const value = await char.readValue();
+      const uint8Value = value.getUint8(0);
+      console.log(`[BLE] ✓ Read ${charName}: ${uint8Value}`);
+      return uint8Value;
+    } catch (error) {
+      console.error(`[BLE] ✗ Error reading ${charName}:`, error.message, error);
+      throw error;
+    }
   }
 
   async _writeUint8(uuid, value) {

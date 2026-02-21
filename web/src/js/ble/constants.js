@@ -146,3 +146,13 @@ export const CHAR_METADATA = {
     readonly: false
   }
 };
+
+// Helper function to get characteristic name from UUID
+export function getCharName(uuid) {
+  for (const [key, value] of Object.entries(CHAR_UUIDS)) {
+    if (value === uuid) {
+      return CHAR_METADATA[key]?.name || key;
+    }
+  }
+  return uuid;
+}
