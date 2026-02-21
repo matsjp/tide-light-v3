@@ -6,7 +6,6 @@ used by pybleno characteristics.
 """
 
 import array
-from pybleno import readUInt8, writeUInt8
 
 
 def string_to_bytes(text: str) -> array.array:
@@ -19,9 +18,9 @@ def string_to_bytes(text: str) -> array.array:
     Returns:
         array.array('B') containing UTF-8 encoded bytes
     """
-    data = array.array('B', [0] * len(text))
-    for i in range(len(text)):
-        writeUInt8(data, ord(text[i]), i)
+    # Encode to UTF-8 bytes, then convert to array.array('B')
+    utf8_bytes = text.encode('utf-8')
+    data = array.array('B', utf8_bytes)
     return data
 
 
@@ -35,10 +34,9 @@ def bytes_to_string(data: array.array) -> str:
     Returns:
         Decoded string
     """
-    result = ''
-    for i in range(len(data)):
-        result += chr(readUInt8(data, i))
-    return result
+    # Convert array.array to bytes, then decode UTF-8
+    byte_data = bytes(data)
+    return byte_data.decode('utf-8')
 
 
 def uint8_to_bytes(value: int) -> array.array:
@@ -51,8 +49,7 @@ def uint8_to_bytes(value: int) -> array.array:
     Returns:
         array.array('B') with single byte
     """
-    data = array.array('B', [0] * 1)
-    writeUInt8(data, value, 0)
+    data = array.array('B', [value])
     return data
 
 
@@ -66,7 +63,7 @@ def bytes_to_uint8(data: array.array) -> int:
     Returns:
         Integer value 0-255
     """
-    return readUInt8(data, 0)
+    return data[0]
 
 
 def json_to_bytes(json_str: str) -> array.array:
