@@ -37,7 +37,7 @@ class WiFiManager:
             pass
         
         try:
-            subprocess.run(['wpa_cli', '--version'], capture_output=True, check=True)
+            subprocess.run(['wpa_cli', '-v'], capture_output=True, check=True)
             return 'wpa_cli'
         except (subprocess.CalledProcessError, FileNotFoundError):
             pass
