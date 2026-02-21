@@ -13,6 +13,7 @@ from typing import Optional
 from config_manager import ConfigManager
 from tide_calculator import TideCalculator
 from tide_cache_manager import TideCacheManager
+from rtc_manager import RTCManager
 
 
 class BLEManager:
@@ -27,7 +28,8 @@ class BLEManager:
         config_manager: ConfigManager,
         tide_calculator: TideCalculator,
         tide_cache: TideCacheManager,
-        config_path: str = "config.json"
+        config_path: str = "config.json",
+        rtc_manager: Optional[RTCManager] = None
     ):
         """
         Initialize BLE manager.
@@ -37,11 +39,13 @@ class BLEManager:
             tide_calculator: TideCalculator for status
             tide_cache: TideCacheManager for status
             config_path: Path to config.json (for mock watcher)
+            rtc_manager: Optional RTCManager for time sync
         """
         self._config_manager = config_manager
         self._tide_calculator = tide_calculator
         self._tide_cache = tide_cache
         self._config_path = config_path
+        self._rtc_manager = rtc_manager
         
         # Determine if we should use mock or real
         config = config_manager.get_config()
@@ -154,5 +158,6 @@ class BLEManager:
                 config_manager=self._config_manager,
                 config_handler=config_handler,
                 status_provider=status_provider,
-                wifi_handler=wifi_handler
+                wifi_handler=wifi_handler,
+                rtc_manager=self._rtc_manager
             )

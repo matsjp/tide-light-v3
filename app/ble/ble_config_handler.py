@@ -437,3 +437,31 @@ class BLEConfigHandler:
         """Get full configuration as JSON string."""
         config = self._config_manager.get_config()
         return json.dumps(config, indent=2)
+    
+    def get_ldr_active(self) -> bool:
+        """Get current LDR active state."""
+        config = self._config_manager.get_config()
+        return config.get("ldr", {}).get("enabled", False)
+    
+    def update_ldr_active(self, enabled: bool) -> int:
+        """
+        Update LDR active state.
+        
+        Args:
+            enabled: True to enable, False to disable
+            
+        Returns:
+            Error code (0 = success)
+        """
+        try:
+            config = self._config_manager.get_config()
+            if "ldr" not in config:
+                config["ldr"] = {"enabled": False, "pin": 11}
+            
+            config["ldr"]["enabled"] = enabled
+            self._config_manager.update_config(config)
+            return self._set_error(BLE_ERROR_NONE)
+        except Exception as e:
+            print(f"[BLEConfigHandler] Error updating LDR: {e}")
+            return self._set_error(BLE_ERROR_INTERNAL)
+

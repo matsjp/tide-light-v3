@@ -33,6 +33,15 @@ CHAR_WIFI_SSID_UUID = "12345678-1234-5678-1234-56789abcdefb"
 CHAR_WIFI_PASSWORD_UUID = "12345678-1234-5678-1234-56789abcdefc"
 CHAR_WIFI_STATUS_UUID = "12345678-1234-5678-1234-56789abcdefd"
 
+# LDR characteristic UUID
+CHAR_LDR_ACTIVE_UUID = "12345678-1234-5678-1234-56789abcdefe"
+
+# RTC characteristic UUID
+CHAR_SYSTEM_TIME_UUID = "12345678-1234-5678-1234-56789abcdeff"
+
+# Reset characteristic UUID
+CHAR_RESET_UUID = "12345678-1234-5678-1234-56789abcdf00"
+
 # -----------------------------
 # Error Codes
 # -----------------------------

@@ -18,6 +18,7 @@ const DEFAULT_CONFIG = {
   waveSpeed: 0.5,
   ledCount: 60,
   ledInvert: false,
+  ldrActive: false,
   errorCode: 0
 };
 
@@ -212,6 +213,88 @@ export class BLEManagerMock {
   }
 
   /**
+   * Read LDR active (boolean)
+   */
+  async readLdrActive() {
+    await this._delay(100);
+    console.log('[BLE Mock] Read LDR active:', this.config.ldrActive);
+    return this.config.ldrActive;
+  }
+
+  /**
+   * Write LDR active
+   */
+  async writeLdrActive(value) {
+    await this._delay(150);
+    this.config.ldrActive = Boolean(value);
+    this._saveConfig();
+    console.log('[BLE Mock] Write LDR active:', this.config.ldrActive);
+  }
+
+  /**
+   * Check if LDR is available (always true in mock)
+   */
+  isLdrAvailable() {
+    return true;
+  }
+
+  /**
+   * Read system time (ISO 8601 string)
+   */
+  async readSystemTime() {
+    await this._delay(100);
+    const systemTime = localStorage.getItem('tide-light-mock-system-time') || new Date().toISOString().split('.')[0];
+    console.log('[BLE Mock] Read system time:', systemTime);
+    return systemTime;
+  }
+
+  /**
+   * Write system time (ISO 8601 string)
+   */
+  async writeSystemTime(isoTimeString) {
+    await this._delay(150);
+    localStorage.setItem('tide-light-mock-system-time', isoTimeString);
+    console.log('[BLE Mock] Write system time:', isoTimeString);
+  }
+
+  /**
+   * Check if RTC is available (always true in mock)
+   */
+  isRtcAvailable() {
+    return true;
+  }
+
+  /**
+   * Sync device time to browser's current time
+   */
+  async syncTimeNow() {
+    const now = new Date();
+    const isoString = now.toISOString().split('.')[0];
+    await this.writeSystemTime(isoString);
+  }
+
+  /**
+   * Trigger factory reset (restore default configuration)
+   */
+  async factoryReset() {
+    await this._delay(300);
+    // Reset to defaults
+    this.config = {
+      location: { latitude: 69.966, longitude: 23.272 },
+      brightness: 50,
+      pattern: 'wave',
+      waveSpeed: 0.5,
+      ledCount: 60,
+      ledInvert: false
+    };
+    // Clear localStorage
+    localStorage.removeItem('tide-light-config');
+    localStorage.removeItem('tide-light-ldr-enabled');
+    localStorage.removeItem('tide-light-system-time');
+    console.log('[BLE Mock] Factory reset completed');
+  }
+
+  /**
    * Read full config JSON
    */
   async readFullConfig() {
@@ -321,6 +404,7 @@ export class BLEManagerMock {
       waveSpeed: this.config.waveSpeed,
       ledCount: this.config.ledCount,
       ledInvert: this.config.ledInvert,
+      ldrActive: this.config.ldrActive,
       errorCode: this.config.errorCode,
       errorMessage: this.getErrorMessage(this.config.errorCode)
     };

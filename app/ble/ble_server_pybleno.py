@@ -16,6 +16,7 @@ from config_manager import ConfigManager
 from ble.ble_config_handler import BLEConfigHandler
 from ble.ble_status_provider import BLEStatusProvider
 from ble.wifi_handler import WiFiHandler
+from rtc_manager import RTCManager
 
 
 class BLEServerPybleno:
@@ -29,7 +30,8 @@ class BLEServerPybleno:
         config_manager: ConfigManager,
         config_handler: BLEConfigHandler,
         status_provider: BLEStatusProvider,
-        wifi_handler: Optional[WiFiHandler] = None
+        wifi_handler: Optional[WiFiHandler] = None,
+        rtc_manager: Optional[RTCManager] = None
     ):
         """
         Initialize BLE server.
@@ -39,17 +41,19 @@ class BLEServerPybleno:
             config_handler: Handler for config validation and updates
             status_provider: Provider for status information
             wifi_handler: Optional handler for WiFi operations
+            rtc_manager: Optional handler for RTC operations
         """
         self._config_manager = config_manager
         self._handler = config_handler
         self._status = status_provider
         self._wifi_handler = wifi_handler
+        self._rtc_manager = rtc_manager
         
         # Initialize Bleno
         self._bleno = Bleno()
         
-        # Create service with optional WiFi handler
-        self._service = TideLightService(config_handler, status_provider, wifi_handler)
+        # Create service with optional WiFi and RTC handlers
+        self._service = TideLightService(config_handler, status_provider, config_manager, wifi_handler, rtc_manager)
         
         # Get device name from config
         config = self._config_manager.get_config()
@@ -63,7 +67,8 @@ class BLEServerPybleno:
         self._bleno.on('advertisingStart', self._on_advertising_start)
         
         wifi_status = "enabled" if wifi_handler else "disabled"
-        print(f"[BLE Server Pybleno] Initialized (WiFi {wifi_status})")
+        rtc_status = "enabled" if rtc_manager else "disabled"
+        print(f"[BLE Server Pybleno] Initialized (WiFi {wifi_status}, RTC {rtc_status})")
     
     def start(self):
         """Start BLE server."""

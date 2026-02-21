@@ -20,6 +20,9 @@ from ble.characteristics.wifi_networks_characteristic import WiFiNetworksCharact
 from ble.characteristics.wifi_ssid_characteristic import WiFiSsidCharacteristic
 from ble.characteristics.wifi_password_characteristic import WiFiPasswordCharacteristic
 from ble.characteristics.wifi_status_characteristic import WiFiStatusCharacteristic
+from ble.characteristics.ldr_active_characteristic import LdrActiveCharacteristic
+from ble.characteristics.system_time_characteristic import SystemTimeCharacteristic
+from ble.characteristics.reset_characteristic import ResetCharacteristic
 
 
 class TideLightService(BlenoPrimaryService):
@@ -41,16 +44,21 @@ class TideLightService(BlenoPrimaryService):
     - WiFi SSID (write)
     - WiFi Password (write)
     - WiFi Status (JSON, notify)
+    - LDR Active (0/1)
+    - System Time (ISO 8601 string)
+    - Reset (write-only trigger)
     """
     
-    def __init__(self, config_handler, status_provider, wifi_handler=None):
+    def __init__(self, config_handler, status_provider, config_manager=None, wifi_handler=None, rtc_manager=None):
         """
         Initialize Tide Light service with all characteristics.
         
         Args:
             config_handler: BLEConfigHandler instance
             status_provider: BLEStatusProvider instance
+            config_manager: ConfigManager instance (optional, for reset)
             wifi_handler: WiFiHandler instance (optional)
+            rtc_manager: RTCManager instance (optional)
         """
         characteristics = [
             LocationCharacteristic(config_handler),
@@ -62,7 +70,16 @@ class TideLightService(BlenoPrimaryService):
             FullConfigCharacteristic(config_handler),
             StatusCharacteristic(status_provider),
             ErrorCharacteristic(config_handler),
+            LdrActiveCharacteristic(config_handler),
         ]
+        
+        # Add RTC characteristic if RTC manager provided
+        if rtc_manager:
+            characteristics.append(SystemTimeCharacteristic(rtc_manager))
+        
+        # Add Reset characteristic if config manager provided
+        if config_manager:
+            characteristics.append(ResetCharacteristic(config_manager))
         
         # Add WiFi characteristics if WiFi handler provided
         if wifi_handler:

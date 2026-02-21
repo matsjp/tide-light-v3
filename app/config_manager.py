@@ -6,6 +6,36 @@ from typing import Callable, Dict, Any, List
 
 
 class ConfigManager:
+    # Default configuration template
+    DEFAULT_CONFIG = {
+        "config_version": 1,
+        "bluetooth": {
+            "use_fake_library": True,
+            "device_name": "Tide Light"
+        },
+        "tide": {
+            "location": {
+                "latitude": 69.966,
+                "longitude": 23.272
+            }
+        },
+        "led_strip": {
+            "count": 60,
+            "brightness": 50,
+            "invert": False,
+            "use_mock": True
+        },
+        "ldr": {
+            "enabled": False,
+            "pin": 11
+        },
+        "color": {
+            "format": "rgb",
+            "pattern": "wave",
+            "wave_speed": 0.5
+        }
+    }
+
     def __init__(self, config_path: str):
         self._config_path = Path(config_path)
         self._lock = threading.Lock()
@@ -38,6 +68,17 @@ class ConfigManager:
         The callback receives the full updated config.
         """
         self._listeners.append(callback)
+
+    def reset_to_defaults(self) -> None:
+        """
+        Reset configuration to factory defaults.
+        This triggers cache invalidation and notifies all listeners.
+        """
+        with self._lock:
+            self._config = deepcopy(self.DEFAULT_CONFIG)
+            self._persist_to_disk()
+
+        self._notify_listeners()
 
     # ---------- Internal ----------
 

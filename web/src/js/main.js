@@ -7,6 +7,7 @@ import { BLEManagerMock } from './ble/ble-manager-mock.js';
 import { MapManager } from './map/map-manager.js';
 import { WiFiManager } from './wifi/wifi-manager.js';
 import { validateLocation, debounce } from './map/validator.js';
+import { validatePiTideData } from './tide/tide-validator.js';
 import { showNotification, showError, showSuccess } from './utils/notifications.js';
 
 class TideLightApp {
@@ -76,6 +77,21 @@ class TideLightApp {
       this.toggleWaveSpeedVisibility(e.target.value === 'wave');
     });
 
+    // LDR toggle
+    document.getElementById('ldr-toggle-input').addEventListener('change', async (e) => {
+      await this.handleLdrToggle(e.target.checked);
+    });
+
+    // RTC sync button
+    document.getElementById('sync-time-btn').addEventListener('click', async () => {
+      await this.handleSyncTime();
+    });
+
+    // Factory reset button
+    document.getElementById('factory-reset-btn').addEventListener('click', async () => {
+      await this.handleFactoryReset();
+    });
+
     // Apply button
     document.getElementById('apply-btn').addEventListener('click', () => this.applyChanges());
   }
@@ -107,6 +123,12 @@ class TideLightApp {
         await this.wifi?.init();
       }
 
+      // Show System section if RTC available
+      if (this.ble.isRtcAvailable && this.ble.isRtcAvailable()) {
+        this.showSection('system-section');
+        await this.initializeRtcUI();
+      }
+
       // Load current configuration
       await this.loadConfiguration();
 
@@ -131,11 +153,18 @@ class TideLightApp {
       statusDot.className = 'status-dot';
       statusText.textContent = 'Not Connected';
       
+      // Clear time update interval
+      if (this.timeUpdateInterval) {
+        clearInterval(this.timeUpdateInterval);
+        this.timeUpdateInterval = null;
+      }
+      
       // Hide sections
       this.hideSection('map-section');
       this.hideSection('config-section');
       this.hideSection('status-section');
       this.hideSection('wifi-section');
+      this.hideSection('system-section');
     }
   }
 
@@ -155,6 +184,15 @@ class TideLightApp {
       document.getElementById('wave-speed-input').value = config.waveSpeed;
       document.getElementById('led-count-input').value = config.ledCount;
       document.getElementById('led-invert-input').checked = config.ledInvert;
+
+      // Show/hide LDR toggle based on availability
+      if (this.ble.isLdrAvailable && this.ble.isLdrAvailable()) {
+        document.getElementById('ldr-group').style.display = 'block';
+        document.getElementById('ldr-toggle-input').checked = config.ldrActive;
+        this.updateBrightnessSliderState(config.ldrActive);
+      } else {
+        document.getElementById('ldr-group').style.display = 'none';
+      }
 
       // Update map marker
       if (this.map) {
@@ -292,6 +330,144 @@ class TideLightApp {
     }
   }
 
+  async handleLdrToggle(enabled) {
+    if (!this.ble.isConnected) {
+      showError('Not connected to device');
+      document.getElementById('ldr-toggle-input').checked = !enabled; // Revert
+      return;
+    }
+
+    try {
+      await this.ble.writeLdrActive(enabled);
+      showSuccess(enabled ? 'LDR enabled' : 'LDR disabled');
+      this.updateBrightnessSliderState(enabled);
+      console.log('[App] LDR toggled:', enabled);
+    } catch (error) {
+      console.error('[App] Error toggling LDR:', error);
+      showError(`Failed to update LDR: ${error.message}`);
+      document.getElementById('ldr-toggle-input').checked = !enabled; // Revert
+    }
+  }
+
+  updateBrightnessSliderState(ldrEnabled) {
+    const slider = document.getElementById('brightness-input');
+    const valueDisplay = document.getElementById('brightness-value');
+    const label = slider.previousElementSibling;
+
+    if (ldrEnabled) {
+      slider.disabled = true;
+      slider.style.opacity = '0.5';
+      valueDisplay.style.opacity = '0.5';
+      if (label) label.style.opacity = '0.5';
+      if (label) label.title = 'Manual control disabled while LDR is active';
+    } else {
+      slider.disabled = false;
+      slider.style.opacity = '1';
+      valueDisplay.style.opacity = '1';
+      if (label) label.style.opacity = '1';
+      if (label) label.title = '';
+    }
+  }
+
+  async initializeRtcUI() {
+    // Start updating time displays every second
+    this.updateTimeDisplays();
+    this.timeUpdateInterval = setInterval(() => {
+      this.updateTimeDisplays();
+    }, 1000);
+  }
+
+  async updateTimeDisplays() {
+    // Update browser time
+    const now = new Date();
+    const browserTimeStr = now.toLocaleTimeString('en-US', { hour12: false });
+    document.getElementById('browser-time-display').textContent = browserTimeStr;
+
+    // Update device time
+    try {
+      if (this.ble.isConnected && this.ble.isRtcAvailable && this.ble.isRtcAvailable()) {
+        const deviceTime = await this.ble.readSystemTime();
+        if (deviceTime) {
+          const deviceDate = new Date(deviceTime);
+          const deviceTimeStr = deviceDate.toLocaleTimeString('en-US', { hour12: false });
+          document.getElementById('device-time-display').textContent = deviceTimeStr;
+        }
+      }
+    } catch (error) {
+      console.error('[App] Error reading device time:', error);
+    }
+  }
+
+  async handleSyncTime() {
+    if (!this.ble.isConnected) {
+      showError('Not connected to device');
+      return;
+    }
+
+    try {
+      this.showLoading('Syncing device time...');
+      await this.ble.syncTimeNow();
+      showSuccess('Device time synced successfully');
+      await this.updateTimeDisplays(); // Update immediately
+      console.log('[App] Time synced');
+    } catch (error) {
+      console.error('[App] Error syncing time:', error);
+      showError(`Failed to sync time: ${error.message}`);
+    } finally {
+      this.hideLoading();
+    }
+  }
+
+  async handleFactoryReset() {
+    if (!this.ble.isConnected) {
+      showError('Not connected to device');
+      return;
+    }
+
+    // Show confirmation dialog
+    const confirmed = confirm(
+      '⚠️ WARNING: Factory Reset\n\n' +
+      'This will restore ALL settings to factory defaults:\n' +
+      '• Location will be reset\n' +
+      '• LED settings will be reset\n' +
+      '• All custom configurations will be lost\n\n' +
+      'This action CANNOT be undone!\n\n' +
+      'Are you absolutely sure you want to continue?'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    // Double confirmation for safety
+    const doubleConfirmed = confirm(
+      'Final Confirmation\n\n' +
+      'Click OK to proceed with factory reset, or Cancel to abort.'
+    );
+
+    if (!doubleConfirmed) {
+      return;
+    }
+
+    try {
+      this.showLoading('Resetting to factory defaults...');
+      await this.ble.factoryReset();
+      showSuccess('Factory reset completed. Reloading configuration...');
+      
+      // Wait a moment for the reset to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Reload configuration from device
+      await this.loadConfiguration();
+      console.log('[App] Factory reset completed');
+    } catch (error) {
+      console.error('[App] Error during factory reset:', error);
+      showError(`Factory reset failed: ${error.message}`);
+    } finally {
+      this.hideLoading();
+    }
+  }
+
   updateStatus(status) {
     console.log('[App] Status update:', status);
 
@@ -358,6 +534,99 @@ class TideLightApp {
         <span class="value">${this.formatTime(status.system.last_update)}</span>
       </div>
     `;
+
+    // Trigger automatic tide data validation
+    this.handleTideValidation(status);
+  }
+
+  async handleTideValidation(status) {
+    const validationEl = document.getElementById('tide-validation');
+    
+    // Show validating state
+    validationEl.innerHTML = `
+      <div class="validation-validating">
+        <span class="validation-spinner"></span>
+        Validating tide data against Kartverket API...
+      </div>
+    `;
+
+    try {
+      const result = await validatePiTideData(status);
+      
+      console.log('[App] Validation result:', result);
+
+      // Display validation result based on status
+      if (result.status === 'valid') {
+        validationEl.innerHTML = `
+          <div class="validation-success">
+            <strong>✓ Validated</strong>
+            <p>${result.message}</p>
+            ${result.details ? `
+              <div class="validation-details">
+                <div class="validation-detail-row">
+                  <span>Next event:</span>
+                  <span>${result.details.nextEvent.diffMinutes} min difference</span>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      } else if (result.status === 'mismatch') {
+        validationEl.innerHTML = `
+          <div class="validation-warning">
+            <strong>⚠️ Data Mismatch Detected</strong>
+            <p>${result.message}</p>
+            ${result.details && result.details.mismatches ? `
+              <ul class="validation-mismatches">
+                ${result.details.mismatches.map(m => `<li>${m}</li>`).join('')}
+              </ul>
+            ` : ''}
+            ${result.details ? `
+              <div class="validation-details">
+                <div class="validation-event-group">
+                  <strong>Next Event:</strong>
+                  <div class="validation-detail-row">
+                    <span>Pi:</span>
+                    <span>${this.formatTime(result.details.nextEvent.piTime)} (${result.details.nextEvent.piType})</span>
+                  </div>
+                  <div class="validation-detail-row">
+                    <span>API:</span>
+                    <span>${this.formatTime(result.details.nextEvent.apiTime)} (${result.details.nextEvent.apiType})</span>
+                  </div>
+                  <div class="validation-detail-row">
+                    <span>Difference:</span>
+                    <span>${result.details.nextEvent.diffMinutes} minutes</span>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      } else if (result.status === 'unavailable') {
+        validationEl.innerHTML = `
+          <div class="validation-unavailable">
+            <strong>ℹ️ Validation Unavailable</strong>
+            <p>${result.message}</p>
+          </div>
+        `;
+      } else if (result.status === 'error') {
+        validationEl.innerHTML = `
+          <div class="validation-error">
+            <strong>✗ Validation Error</strong>
+            <p>${result.message}</p>
+          </div>
+        `;
+      }
+
+    } catch (error) {
+      console.error('[App] Validation failed:', error);
+      validationEl.innerHTML = `
+        <div class="validation-error">
+          <strong>✗ Validation Failed</strong>
+          <p>Could not validate tide data: ${error.message}</p>
+        </div>
+      `;
+    }
   }
 
   // Helper methods

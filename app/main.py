@@ -7,11 +7,13 @@ from light_controller import LightController
 from tide_calculator import TideCalculator
 from tide_visualizer import TideVisualizer
 from ble import BLEManager
+from ldr_controller import LdrController
+from rtc_manager import RTCManager
 
 CONFIG_PATH = "config.json"
 DB_PATH = "tide_cache.sqlite"
 
-def on_config_changed(config, scheduler, visualizer):
+def on_config_changed(config, scheduler, visualizer, ldr):
     lat = config["tide"]["location"]["latitude"]
     lon = config["tide"]["location"]["longitude"]
     brightness = config["led_strip"]["brightness"]
@@ -26,6 +28,7 @@ def on_config_changed(config, scheduler, visualizer):
 
     scheduler.on_config_updated(config)
     visualizer.on_config_updated(config)
+    ldr.on_config_updated(config)
 
 def main():
     print("Starting Tide Light...")
@@ -82,11 +85,25 @@ def main():
     # Start visualizer
     visualizer.start()
     
+    # Initialize LDR controller
+    print("Initializing LDR controller...")
+    def on_ldr_brightness_change(brightness: int):
+        """Callback when LDR wants to change brightness."""
+        print(f"[LDR] Auto-adjusting brightness to {brightness}")
+        visualizer.set_brightness(brightness)
+    
+    ldr = LdrController(config=config, on_brightness_change=on_ldr_brightness_change)
+    ldr.start()
+    
     # Register config listener
-    config_manager.register_listener(lambda cfg: on_config_changed(cfg, scheduler, visualizer))
+    config_manager.register_listener(lambda cfg: on_config_changed(cfg, scheduler, visualizer, ldr))
 
     # Initial fetch (will notify visualizer)
     scheduler._run_once()
+
+    # Initialize RTC manager
+    print("Initializing RTC manager...")
+    rtc_manager = RTCManager()
 
     # Initialize BLE interface
     print("Initializing BLE interface...")
@@ -94,7 +111,8 @@ def main():
         config_manager=config_manager,
         tide_calculator=calculator,
         tide_cache=cache,
-        config_path=CONFIG_PATH
+        config_path=CONFIG_PATH,
+        rtc_manager=rtc_manager
     )
     ble_manager.start()
 
@@ -108,6 +126,7 @@ def main():
             time.sleep(1)
     except KeyboardInterrupt:
         print("Shutting down Tide Light...")
+        ldr.stop()
         ble_manager.stop()
         visualizer.stop()
         scheduler.stop()

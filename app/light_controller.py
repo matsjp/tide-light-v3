@@ -100,6 +100,18 @@ class LightController:
         with self._lock:
             self._strip.setBrightness(brightness)
     
+    def set_brightness_override(self, brightness: int) -> None:
+        """
+        Set brightness override (called by LDR).
+        Immediately updates the display.
+        
+        Args:
+            brightness: Brightness value (0-255)
+        """
+        with self._lock:
+            self._strip.setBrightness(brightness)
+            self._strip.show()
+    
     def clear(self) -> None:
         """Turn all LEDs off."""
         with self._lock:

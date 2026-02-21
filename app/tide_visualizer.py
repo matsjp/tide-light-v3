@@ -109,6 +109,15 @@ class TideVisualizer:
         print("[TideVisualizer] Tide data updated, refreshing visualization")
         # Main loop will automatically pick up new data on next iteration
     
+    def set_brightness(self, brightness: int) -> None:
+        """
+        Set brightness (called by LDR or BLE).
+        
+        Args:
+            brightness: Brightness value (0-255)
+        """
+        self._light.set_brightness_override(brightness)
+    
     # -----------------------------
     # Internal methods
     # -----------------------------

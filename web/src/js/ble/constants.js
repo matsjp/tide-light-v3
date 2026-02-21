@@ -21,7 +21,10 @@ export const CHAR_UUIDS = {
   WIFI_NETWORKS: "12345678-1234-5678-1234-56789abcdefa",
   WIFI_SSID: "12345678-1234-5678-1234-56789abcdefb",
   WIFI_PASSWORD: "12345678-1234-5678-1234-56789abcdefc",
-  WIFI_STATUS: "12345678-1234-5678-1234-56789abcdefd"
+  WIFI_STATUS: "12345678-1234-5678-1234-56789abcdefd",
+  LDR_ACTIVE: "12345678-1234-5678-1234-56789abcdefe",
+  SYSTEM_TIME: "12345678-1234-5678-1234-56789abcdeff",
+  RESET: "12345678-1234-5678-1234-56789abcdf00"
 };
 
 // Error Codes
@@ -125,5 +128,21 @@ export const CHAR_METADATA = {
     name: "WiFi Status",
     format: "json_string",
     readonly: true
+  },
+  LDR_ACTIVE: {
+    name: "LDR Active",
+    format: "bool_uint8",
+    values: [0, 1]
+  },
+  SYSTEM_TIME: {
+    name: "System Time",
+    format: "iso8601_string",
+    example: "2026-02-21T14:30:00",
+    readonly: false
+  },
+  RESET: {
+    name: "Factory Reset",
+    format: "uint8",
+    readonly: false
   }
 };

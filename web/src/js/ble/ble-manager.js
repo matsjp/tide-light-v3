@@ -174,6 +174,82 @@ export class BLEManager {
   }
 
   /**
+   * Read LDR active (boolean)
+   */
+  async readLdrActive() {
+    if (!this.characteristics[CHAR_UUIDS.LDR_ACTIVE]) {
+      return false; // LDR not available on this device
+    }
+    const value = await this._readUint8(CHAR_UUIDS.LDR_ACTIVE);
+    return value === 1;
+  }
+
+  /**
+   * Write LDR active
+   */
+  async writeLdrActive(value) {
+    if (!this.characteristics[CHAR_UUIDS.LDR_ACTIVE]) {
+      throw new Error('LDR characteristic not available');
+    }
+    await this._writeUint8(CHAR_UUIDS.LDR_ACTIVE, value ? 1 : 0);
+  }
+
+  /**
+   * Check if LDR is available
+   */
+  isLdrAvailable() {
+    return !!this.characteristics[CHAR_UUIDS.LDR_ACTIVE];
+  }
+
+  /**
+   * Read system time (ISO 8601 string)
+   */
+  async readSystemTime() {
+    if (!this.characteristics[CHAR_UUIDS.SYSTEM_TIME]) {
+      return null; // RTC not available on this device
+    }
+    return await this._readString(CHAR_UUIDS.SYSTEM_TIME);
+  }
+
+  /**
+   * Write system time (ISO 8601 string)
+   */
+  async writeSystemTime(isoTimeString) {
+    if (!this.characteristics[CHAR_UUIDS.SYSTEM_TIME]) {
+      throw new Error('System time characteristic not available');
+    }
+    await this._writeString(CHAR_UUIDS.SYSTEM_TIME, isoTimeString);
+  }
+
+  /**
+   * Check if RTC is available
+   */
+  isRtcAvailable() {
+    return !!this.characteristics[CHAR_UUIDS.SYSTEM_TIME];
+  }
+
+  /**
+   * Sync device time to browser's current time
+   */
+  async syncTimeNow() {
+    const now = new Date();
+    // Format as ISO 8601 without milliseconds or timezone (local time)
+    const isoString = now.toISOString().split('.')[0];
+    await this.writeSystemTime(isoString);
+  }
+
+  /**
+   * Trigger factory reset (restore default configuration)
+   * Writing 0x01 triggers the reset
+   */
+  async factoryReset() {
+    if (!this.characteristics[CHAR_UUIDS.RESET]) {
+      throw new Error('Reset characteristic not available');
+    }
+    await this._writeUint8(CHAR_UUIDS.RESET, 1);
+  }
+
+  /**
    * Read full config JSON
    */
   async readFullConfig() {
@@ -242,13 +318,17 @@ export class BLEManager {
    */
   async readAll() {
     try {
-      const [location, brightness, pattern, waveSpeed, ledCount, ledInvert, errorCode] = await Promise.all([
+      // Read LDR only if available
+      const ldrPromise = this.isLdrAvailable() ? this.readLdrActive() : Promise.resolve(false);
+      
+      const [location, brightness, pattern, waveSpeed, ledCount, ledInvert, ldrActive, errorCode] = await Promise.all([
         this.readLocation(),
         this.readBrightness(),
         this.readPattern(),
         this.readWaveSpeed(),
         this.readLedCount(),
         this.readLedInvert(),
+        ldrPromise,
         this.readErrorCode()
       ]);
 
@@ -259,6 +339,7 @@ export class BLEManager {
         waveSpeed,
         ledCount,
         ledInvert,
+        ldrActive,
         errorCode,
         errorMessage: this.getErrorMessage(errorCode)
       };

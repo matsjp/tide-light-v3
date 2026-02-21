@@ -82,6 +82,13 @@
           <input type="range" id="brightness-input" min="0" max="255" value="50" class="slider">
         </div>
 
+        <div class="form-group" id="ldr-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="ldr-toggle-input">
+            <span>Auto-brightness (LDR) <span class="info-hint" title="Automatically adjust brightness based on ambient light">ℹ️</span></span>
+          </label>
+        </div>
+
         <div class="form-group">
           <label for="pattern-select">Pattern</label>
           <select id="pattern-select" class="select-input">
@@ -160,12 +167,47 @@
         </div>
       </section>
 
+      <!-- System Settings Section -->
+      <section class="section" id="system-section" style="display: none;">
+        <h2 class="section-title">⚙️ System Settings</h2>
+        
+        <div id="rtc-group">
+          <h3 class="subsection-title">🕐 Device Time</h3>
+          <div class="info-card">
+            <div class="form-group">
+              <label>Current Device Time:</label>
+              <div id="device-time-display" class="value-display">--:--:--</div>
+            </div>
+            <div class="form-group">
+              <label>Browser Time:</label>
+              <div id="browser-time-display" class="value-display">--:--:--</div>
+            </div>
+            <button id="sync-time-btn" class="btn btn-primary">Sync Device to Browser Time</button>
+            <p class="hint">Synchronize device time with your browser's current time. Important for accurate tide calculations when offline.</p>
+          </div>
+        </div>
+
+        <div id="reset-group">
+          <h3 class="subsection-title">🔄 Factory Reset</h3>
+          <div class="info-card">
+            <p class="warning-text">⚠️ This will restore all settings to factory defaults. This action cannot be undone!</p>
+            <button id="factory-reset-btn" class="btn btn-danger">Reset to Factory Defaults</button>
+            <p class="hint">Use this to restore the device to its original configuration. All custom settings will be lost.</p>
+          </div>
+        </div>
+      </section>
+
       <!-- Status Section -->
       <section class="section" id="status-section" style="display: none;">
         <h2 class="section-title">🌊 Current Tide State</h2>
         
         <div id="tide-status" class="status-card">
           <div class="loading">Loading tide data...</div>
+        </div>
+
+        <h3 class="subsection-title">✓ Data Validation</h3>
+        <div id="tide-validation" class="validation-card">
+          <div class="validation-pending">Validation not yet performed</div>
         </div>
 
         <h3 class="subsection-title">📦 Cache Info</h3>

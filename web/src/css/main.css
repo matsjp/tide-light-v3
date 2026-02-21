@@ -180,6 +180,15 @@ body {
   background: #475569;
 }
 
+.btn-danger {
+  background: var(--error-color);
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
 .btn-large {
   width: 100%;
   font-size: 1.125rem;
@@ -189,6 +198,16 @@ body {
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.warning-text {
+  color: var(--error-color);
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #fef2f2;
+  border-left: 4px solid var(--error-color);
+  border-radius: 4px;
 }
 
 .hint {
@@ -248,6 +267,20 @@ body {
   width: 20px;
   height: 20px;
   cursor: pointer;
+}
+
+.info-hint {
+  display: inline-block;
+  margin-left: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  cursor: help;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.info-hint:hover {
+  opacity: 1;
 }
 
 /* ===== Map ===== */
@@ -313,6 +346,120 @@ body {
   background: #fef3c7;
   color: #92400e;
   border: 1px solid #f59e0b;
+}
+
+/* ===== Tide Validation Card ===== */
+.validation-card {
+  background: var(--bg-color);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.validation-card strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.validation-card p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+}
+
+.validation-success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.validation-warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.validation-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
+}
+
+.validation-unavailable {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #818cf8;
+}
+
+.validation-pending {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.validation-validating {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.validation-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #92400e;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.validation-details {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 0.875rem;
+}
+
+.validation-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+
+.validation-detail-row span:first-child {
+  font-weight: 500;
+}
+
+.validation-mismatches {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.validation-mismatches li {
+  margin: 0.25rem 0;
+}
+
+.validation-event-group {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+}
+
+.validation-event-group:first-child {
+  margin-top: 0.5rem;
+}
+
+.validation-event-group strong {
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
 }
 
 /* ===== Status Cards ===== */
