@@ -42,6 +42,7 @@ class StatusCharacteristic(Characteristic):
         self._updateValueCallback = None
         self._notify_thread = None
         self._stop_notify = threading.Event()
+        logging.info("[Status Characteristic] Initialized with UUID 12345678-1234-5678-1234-56789abcdef8")
     
     def onReadRequest(self, offset, callback):
         """
