@@ -421,11 +421,21 @@ export class BLEManager {
     const charName = getCharName(uuid);
     if (!char) throw new Error(`Characteristic ${charName} not found`);
 
-    console.log(`[BLE] Reading ${charName}...`);
+    // Skip logging for System Time to reduce noise (it's polled every second)
+    const skipLogging = uuid === CHAR_UUIDS.SYSTEM_TIME;
+    
+    if (!skipLogging) {
+      console.log(`[BLE] Reading ${charName}...`);
+    }
+    
     try {
       const value = await char.readValue();
       const decoded = new TextDecoder().decode(value);
-      console.log(`[BLE] ✓ Read ${decoded.length} bytes from ${charName}`);
+      
+      if (!skipLogging) {
+        console.log(`[BLE] ✓ Read ${decoded.length} bytes from ${charName}`);
+      }
+      
       return decoded;
     } catch (error) {
       console.error(`[BLE] ✗ Error reading ${charName}:`, error.message, error);

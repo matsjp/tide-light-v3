@@ -51,7 +51,6 @@ class SystemTimeCharacteristic(Characteristic):
                 iso_time = self._rtc.get_system_time_iso()
                 data = iso_time.encode('utf-8')
                 callback(Characteristic.RESULT_SUCCESS, data)
-                logging.info(f"[BLE] System time read: {iso_time}")
             except Exception as e:
                 logging.exception(f"System time read error: {e}")
                 callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
