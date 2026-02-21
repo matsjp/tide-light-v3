@@ -5,6 +5,7 @@
 import { BLEManager } from './ble/ble-manager.js';
 import { BLEManagerMock } from './ble/ble-manager-mock.js';
 import { MapManager } from './map/map-manager.js';
+import { WiFiManager } from './wifi/wifi-manager.js';
 import { validateLocation, debounce } from './map/validator.js';
 import { showNotification, showError, showSuccess } from './utils/notifications.js';
 
@@ -17,6 +18,7 @@ class TideLightApp {
     this.ble = this.demoMode ? new BLEManagerMock() : new BLEManager();
     
     this.map = null;
+    this.wifi = null;
     this.currentConfig = null;
     this.validationState = { valid: false, validating: false };
 
@@ -38,6 +40,9 @@ class TideLightApp {
     this.ble.onConnectionChange = (connected) => this.handleConnectionChange(connected);
     this.ble.onStatusUpdate = (status) => this.updateStatus(status);
     this.ble.onError = (error) => showError(error);
+
+    // Initialize WiFi manager
+    this.wifi = new WiFiManager(this.ble);
 
     // Setup UI event listeners
     this.setupEventListeners();
@@ -95,7 +100,12 @@ class TideLightApp {
     if (connected) {
       statusDot.className = 'status-dot connected';
       statusText.textContent = 'Connected';
-      showSuccess('Connected to Tide Light');
+
+      // Show WiFi section if available
+      if (this.ble.isWifiAvailable && this.ble.isWifiAvailable()) {
+        this.showSection('wifi-section');
+        await this.wifi?.init();
+      }
 
       // Load current configuration
       await this.loadConfiguration();
@@ -125,6 +135,7 @@ class TideLightApp {
       this.hideSection('map-section');
       this.hideSection('config-section');
       this.hideSection('status-section');
+      this.hideSection('wifi-section');
     }
   }
 

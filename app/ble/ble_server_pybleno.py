@@ -9,11 +9,13 @@ Only imported when bluetooth.use_fake_library = false.
 """
 
 import logging
+from typing import Optional
 from pybleno import Bleno
 from ble.services.tide_light_service import TideLightService
 from config_manager import ConfigManager
 from ble.ble_config_handler import BLEConfigHandler
 from ble.ble_status_provider import BLEStatusProvider
+from ble.wifi_handler import WiFiHandler
 
 
 class BLEServerPybleno:
@@ -26,7 +28,8 @@ class BLEServerPybleno:
         self,
         config_manager: ConfigManager,
         config_handler: BLEConfigHandler,
-        status_provider: BLEStatusProvider
+        status_provider: BLEStatusProvider,
+        wifi_handler: Optional[WiFiHandler] = None
     ):
         """
         Initialize BLE server.
@@ -35,16 +38,18 @@ class BLEServerPybleno:
             config_manager: ConfigManager instance
             config_handler: Handler for config validation and updates
             status_provider: Provider for status information
+            wifi_handler: Optional handler for WiFi operations
         """
         self._config_manager = config_manager
         self._handler = config_handler
         self._status = status_provider
+        self._wifi_handler = wifi_handler
         
         # Initialize Bleno
         self._bleno = Bleno()
         
-        # Create service
-        self._service = TideLightService(config_handler, status_provider)
+        # Create service with optional WiFi handler
+        self._service = TideLightService(config_handler, status_provider, wifi_handler)
         
         # Get device name from config
         config = self._config_manager.get_config()
@@ -57,7 +62,8 @@ class BLEServerPybleno:
         self._bleno.on('stateChange', self._on_state_change)
         self._bleno.on('advertisingStart', self._on_advertising_start)
         
-        print("[BLE Server Pybleno] Initialized")
+        wifi_status = "enabled" if wifi_handler else "disabled"
+        print(f"[BLE Server Pybleno] Initialized (WiFi {wifi_status})")
     
     def start(self):
         """Start BLE server."""

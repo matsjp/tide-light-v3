@@ -354,4 +354,142 @@ export class BLEManager {
       return null;
     }
   }
+
+  // ===== WiFi Methods =====
+
+  /**
+   * Read available WiFi networks.
+   * This triggers a scan on the device.
+   * @returns {Promise<Array>} Array of network objects: [{ssid, signal, security}, ...]
+   */
+  async readWifiNetworks() {
+    if (!this.isConnected) {
+      throw new Error('Device not connected');
+    }
+
+    const characteristic = this.characteristics.get(CHAR_UUIDS.WIFI_NETWORKS);
+    if (!characteristic) {
+      throw new Error('WiFi Networks characteristic not available');
+    }
+
+    try {
+      const value = await characteristic.readValue();
+      const jsonString = this._decoder.decode(value);
+      return JSON.parse(jsonString);
+    } catch (error) {
+      console.error('[BLE] Error reading WiFi networks:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Write WiFi SSID to connect to.
+   * Must be called before writeWifiPassword.
+   * @param {string} ssid - Network SSID
+   */
+  async writeWifiSsid(ssid) {
+    if (!this.isConnected) {
+      throw new Error('Device not connected');
+    }
+
+    const characteristic = this.characteristics.get(CHAR_UUIDS.WIFI_SSID);
+    if (!characteristic) {
+      throw new Error('WiFi SSID characteristic not available');
+    }
+
+    try {
+      const encodedValue = this._encoder.encode(ssid);
+      await characteristic.writeValue(encodedValue);
+      console.log('[BLE] WiFi SSID written:', ssid);
+    } catch (error) {
+      console.error('[BLE] Error writing WiFi SSID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Write WiFi password and trigger connection attempt.
+   * writeWifiSsid must be called first.
+   * @param {string} password - Network password
+   */
+  async writeWifiPassword(password) {
+    if (!this.isConnected) {
+      throw new Error('Device not connected');
+    }
+
+    const characteristic = this.characteristics.get(CHAR_UUIDS.WIFI_PASSWORD);
+    if (!characteristic) {
+      throw new Error('WiFi Password characteristic not available');
+    }
+
+    try {
+      const encodedValue = this._encoder.encode(password);
+      await characteristic.writeValue(encodedValue);
+      console.log('[BLE] WiFi password written, connection attempt started');
+    } catch (error) {
+      console.error('[BLE] Error writing WiFi password:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Read WiFi connection status.
+   * @returns {Promise<Object>} Status object: {connected, ssid, error_code}
+   */
+  async readWifiStatus() {
+    if (!this.isConnected) {
+      throw new Error('Device not connected');
+    }
+
+    const characteristic = this.characteristics.get(CHAR_UUIDS.WIFI_STATUS);
+    if (!characteristic) {
+      throw new Error('WiFi Status characteristic not available');
+    }
+
+    try {
+      const value = await characteristic.readValue();
+      const jsonString = this._decoder.decode(value);
+      return JSON.parse(jsonString);
+    } catch (error) {
+      console.error('[BLE] Error reading WiFi status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Subscribe to WiFi status notifications.
+   * @param {Function} callback - Called with status object: {connected, ssid, error_code}
+   */
+  async subscribeWifiStatus(callback) {
+    if (!this.isConnected) {
+      throw new Error('Device not connected');
+    }
+
+    const characteristic = this.characteristics.get(CHAR_UUIDS.WIFI_STATUS);
+    if (!characteristic) {
+      throw new Error('WiFi Status characteristic not available');
+    }
+
+    try {
+      await characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', (event) => {
+        const value = event.target.value;
+        const jsonString = this._decoder.decode(value);
+        const status = JSON.parse(jsonString);
+        callback(status);
+      });
+      console.log('[BLE] Subscribed to WiFi status notifications');
+    } catch (error) {
+      console.error('[BLE] Error subscribing to WiFi status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if WiFi characteristics are available.
+   * @returns {boolean} True if WiFi is supported
+   */
+  isWifiAvailable() {
+    return this.characteristics.has(CHAR_UUIDS.WIFI_NETWORKS);
+  }
 }

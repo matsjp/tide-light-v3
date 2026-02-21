@@ -45,6 +45,10 @@ export class BLEManagerMock {
     this.statusState = this._loadStatusState();
     this.notificationInterval = null;
     
+    // WiFi mock state
+    this._mockWifiSsid = null;
+    this._mockWifiConnected = false;
+    
     console.log('[BLE Mock] Initialized with config:', this.config);
   }
 
@@ -498,5 +502,118 @@ export class BLEManagerMock {
     } catch (error) {
       console.warn('[BLE Mock] Could not disable demo mode:', error);
     }
+  }
+
+  // ===== WiFi Mock Methods =====
+
+  /**
+   * Mock: Read available WiFi networks
+   * @returns {Promise<Array>} Array of network objects
+   */
+  async readWifiNetworks() {
+    await this._delay(1000);
+    
+    const networks = [
+      { ssid: 'HomeNetwork5G', signal: 85, security: true },
+      { ssid: 'CoffeeShop_WiFi', signal: 72, security: false },
+      { ssid: 'MyRouter_2.4G', signal: 65, security: true },
+      { ssid: 'NeighborWiFi', signal: 45, security: true },
+      { ssid: 'Guest_Network', signal: 38, security: false }
+    ];
+    
+    console.log('[BLE Mock] Scanned WiFi networks:', networks);
+    return networks;
+  }
+
+  /**
+   * Mock: Write WiFi SSID
+   * @param {string} ssid - Network SSID
+   */
+  async writeWifiSsid(ssid) {
+    await this._delay(100);
+    this._mockWifiSsid = ssid;
+    console.log('[BLE Mock] WiFi SSID set:', ssid);
+  }
+
+  /**
+   * Mock: Write WiFi password and simulate connection
+   * @param {string} password - Network password
+   */
+  async writeWifiPassword(password) {
+    await this._delay(100);
+    console.log('[BLE Mock] WiFi password written, simulating connection...');
+    
+    // Simulate connection attempt in background
+    setTimeout(() => {
+      const success = Math.random() > 0.2; // 80% success rate
+      this._mockWifiConnected = success;
+      
+      if (success) {
+        console.log('[BLE Mock] WiFi connection successful');
+        try {
+          localStorage.setItem('tide-light-wifi-connected', 'true');
+          localStorage.setItem('tide-light-wifi-ssid', this._mockWifiSsid);
+        } catch (error) {
+          console.warn('[BLE Mock] Could not save WiFi state:', error);
+        }
+      } else {
+        console.log('[BLE Mock] WiFi connection failed');
+        try {
+          localStorage.setItem('tide-light-wifi-connected', 'false');
+        } catch (error) {
+          console.warn('[BLE Mock] Could not save WiFi state:', error);
+        }
+      }
+    }, 2000);
+  }
+
+  /**
+   * Mock: Read WiFi status
+   * @returns {Promise<Object>} Status object
+   */
+  async readWifiStatus() {
+    await this._delay(100);
+    
+    let connected = false;
+    let ssid = '';
+    
+    try {
+      connected = localStorage.getItem('tide-light-wifi-connected') === 'true';
+      ssid = localStorage.getItem('tide-light-wifi-ssid') || '';
+    } catch (error) {
+      console.warn('[BLE Mock] Could not read WiFi state:', error);
+    }
+    
+    const status = {
+      connected: connected,
+      ssid: connected ? ssid : '',
+      error_code: connected ? 0 : 7 // 7 = connection_failed
+    };
+    
+    console.log('[BLE Mock] WiFi status:', status);
+    return status;
+  }
+
+  /**
+   * Mock: Subscribe to WiFi status notifications
+   * @param {Function} callback - Called with status updates
+   */
+  async subscribeWifiStatus(callback) {
+    await this._delay(100);
+    console.log('[BLE Mock] Subscribed to WiFi status notifications (mock)');
+    
+    // Simulate status update after connection attempt
+    setTimeout(async () => {
+      const status = await this.readWifiStatus();
+      callback(status);
+    }, 2500);
+  }
+
+  /**
+   * Mock: Check if WiFi is available
+   * @returns {boolean} Always true in mock mode
+   */
+  isWifiAvailable() {
+    return true;
   }
 }

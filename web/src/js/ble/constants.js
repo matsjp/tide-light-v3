@@ -17,7 +17,11 @@ export const CHAR_UUIDS = {
   LED_INVERT: "12345678-1234-5678-1234-56789abcdef6",
   FULL_CONFIG: "12345678-1234-5678-1234-56789abcdef7",
   STATUS: "12345678-1234-5678-1234-56789abcdef8",
-  ERROR: "12345678-1234-5678-1234-56789abcdef9"
+  ERROR: "12345678-1234-5678-1234-56789abcdef9",
+  WIFI_NETWORKS: "12345678-1234-5678-1234-56789abcdefa",
+  WIFI_SSID: "12345678-1234-5678-1234-56789abcdefb",
+  WIFI_PASSWORD: "12345678-1234-5678-1234-56789abcdefc",
+  WIFI_STATUS: "12345678-1234-5678-1234-56789abcdefd"
 };
 
 // Error Codes
@@ -26,7 +30,11 @@ export const ERROR_CODES = {
   INVALID_FORMAT: 1,
   OUT_OF_RANGE: 2,
   INVALID_VALUE: 3,
-  INTERNAL: 4
+  INTERNAL: 4,
+  INVALID_SSID: 5,
+  INVALID_PASSWORD: 6,
+  CONNECTION_FAILED: 7,
+  NO_WIFI_HARDWARE: 8
 };
 
 export const ERROR_MESSAGES = {
@@ -34,7 +42,11 @@ export const ERROR_MESSAGES = {
   [ERROR_CODES.INVALID_FORMAT]: "Invalid format",
   [ERROR_CODES.OUT_OF_RANGE]: "Value out of range",
   [ERROR_CODES.INVALID_VALUE]: "Invalid value",
-  [ERROR_CODES.INTERNAL]: "Internal error"
+  [ERROR_CODES.INTERNAL]: "Internal error",
+  [ERROR_CODES.INVALID_SSID]: "Invalid SSID",
+  [ERROR_CODES.INVALID_PASSWORD]: "Invalid password",
+  [ERROR_CODES.CONNECTION_FAILED]: "WiFi connection failed",
+  [ERROR_CODES.NO_WIFI_HARDWARE]: "No WiFi hardware"
 };
 
 // Validation Constants
@@ -92,6 +104,26 @@ export const CHAR_METADATA = {
   ERROR: {
     name: "Error Code",
     format: "uint8",
+    readonly: true
+  },
+  WIFI_NETWORKS: {
+    name: "WiFi Networks",
+    format: "json_string",
+    readonly: true
+  },
+  WIFI_SSID: {
+    name: "WiFi SSID",
+    format: "string",
+    readonly: false
+  },
+  WIFI_PASSWORD: {
+    name: "WiFi Password",
+    format: "string",
+    readonly: false
+  },
+  WIFI_STATUS: {
+    name: "WiFi Status",
+    format: "json_string",
     readonly: true
   }
 };

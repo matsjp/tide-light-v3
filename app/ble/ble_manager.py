@@ -119,6 +119,8 @@ class BLEManager:
                 from ble.ble_server_pybleno import BLEServerPybleno
                 from ble.ble_config_handler import BLEConfigHandler
                 from ble.ble_status_provider import BLEStatusProvider
+                from network.wifi_manager import WiFiManager
+                from ble.wifi_handler import WiFiHandler
             except ImportError as e:
                 print(f"[BLE Manager] ERROR: Failed to import BLE libraries: {e}")
                 print("[BLE Manager] Make sure 'pybleno' is installed: pip install pybleno")
@@ -134,9 +136,23 @@ class BLEManager:
                 self._tide_cache
             )
             
+            # Initialize WiFi if available
+            wifi_handler = None
+            try:
+                wifi_manager = WiFiManager()
+                if wifi_manager.is_wifi_available():
+                    wifi_handler = WiFiHandler(wifi_manager)
+                    print("[BLE Manager] WiFi support enabled")
+                else:
+                    print("[BLE Manager] WiFi hardware not available, WiFi characteristics disabled")
+            except Exception as e:
+                print(f"[BLE Manager] WARNING: Failed to initialize WiFi: {e}")
+                print("[BLE Manager] WiFi characteristics will be disabled")
+            
             # Create and return real server
             return BLEServerPybleno(
                 config_manager=self._config_manager,
                 config_handler=config_handler,
-                status_provider=status_provider
+                status_provider=status_provider,
+                wifi_handler=wifi_handler
             )

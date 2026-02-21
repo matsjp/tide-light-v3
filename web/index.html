@@ -110,6 +110,56 @@
         <button id="apply-btn" class="btn btn-primary">Apply Changes</button>
       </section>
 
+      <!-- WiFi Configuration Section -->
+      <section class="section" id="wifi-section" style="display: none;">
+        <h2 class="section-title">📶 WiFi Configuration</h2>
+        
+        <div id="wifi-current-status" class="wifi-current-status">
+          <div class="status-label">Status:</div>
+          <div id="wifi-status-display" class="status-value">Not connected</div>
+        </div>
+
+        <!-- Scan Button -->
+        <div id="wifi-scan-view">
+          <button id="wifi-scan-btn" class="btn btn-secondary btn-block">Scan for Networks</button>
+          <p class="hint">Connect your Tide Light to your WiFi network</p>
+        </div>
+
+        <!-- Network List -->
+        <div id="wifi-networks-view" style="display: none;">
+          <div id="wifi-networks-list" class="wifi-networks-list">
+            <div class="loading">Scanning for networks...</div>
+          </div>
+          <button id="wifi-rescan-btn" class="btn btn-secondary btn-small">Rescan</button>
+        </div>
+
+        <!-- Password Input -->
+        <div id="wifi-password-view" style="display: none;">
+          <div class="wifi-selected-network">
+            <span class="wifi-ssid-label">Network:</span>
+            <strong id="wifi-selected-ssid"></strong>
+          </div>
+          <div class="form-group">
+            <label for="wifi-password-input">Password</label>
+            <input type="password" id="wifi-password-input" class="text-input" placeholder="Enter WiFi password">
+            <label class="checkbox-label">
+              <input type="checkbox" id="wifi-show-password">
+              <span>Show password</span>
+            </label>
+          </div>
+          <div class="button-group">
+            <button id="wifi-connect-btn" class="btn btn-primary">Connect</button>
+            <button id="wifi-cancel-btn" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div id="wifi-connection-status" class="wifi-connection-status" style="display: none;">
+          <div class="status-message" id="wifi-status-message"></div>
+          <button id="wifi-done-btn" class="btn btn-primary">Done</button>
+        </div>
+      </section>
+
       <!-- Status Section -->
       <section class="section" id="status-section" style="display: none;">
         <h2 class="section-title">🌊 Current Tide State</h2>
