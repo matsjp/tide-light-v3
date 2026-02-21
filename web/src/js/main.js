@@ -94,7 +94,63 @@ class TideLightApp {
 
     // Apply button
     document.getElementById('apply-btn').addEventListener('click', () => this.applyChanges());
+
+    // Debug panel controls
+    this.setupDebugPanel();
   }
+
+  setupDebugPanel() {
+    const debugHeader = document.getElementById('debug-header');
+    const debugToggle = document.getElementById('debug-toggle');
+    const debugContent = document.getElementById('debug-content');
+    const debugClear = document.getElementById('debug-clear');
+
+    // Toggle debug panel expand/collapse
+    debugHeader.addEventListener('click', () => {
+      const isCollapsed = debugContent.classList.toggle('collapsed');
+      debugToggle.classList.toggle('collapsed', isCollapsed);
+      debugToggle.textContent = isCollapsed ? '◀' : '▼';
+    });
+
+    // Clear debug messages
+    debugClear.addEventListener('click', () => {
+      this.hideDebugPanel();
+    });
+  }
+
+  showDebugError(error) {
+    const debugPanel = document.getElementById('debug-panel');
+    const debugMessage = document.getElementById('debug-message');
+    const debugContent = document.getElementById('debug-content');
+    const debugToggle = document.getElementById('debug-toggle');
+
+    // Format error message
+    let errorText = '';
+    if (typeof error === 'string') {
+      errorText = error;
+    } else if (error instanceof Error) {
+      errorText = `${error.name}: ${error.message}`;
+      if (error.stack) {
+        errorText += `\n\nStack:\n${error.stack}`;
+      }
+    } else {
+      errorText = JSON.stringify(error, null, 2);
+    }
+
+    debugMessage.textContent = errorText;
+    
+    // Show panel and expand it
+    debugPanel.style.display = 'block';
+    debugContent.classList.remove('collapsed');
+    debugToggle.classList.remove('collapsed');
+    debugToggle.textContent = '▼';
+  }
+
+  hideDebugPanel() {
+    const debugPanel = document.getElementById('debug-panel');
+    debugPanel.style.display = 'none';
+  }
+
 
   async handleConnect() {
     try {
@@ -117,22 +173,8 @@ class TideLightApp {
       statusDot.className = 'status-dot connected';
       statusText.textContent = 'Connected';
 
-      // Show WiFi section if available
-      if (this.ble.isWifiAvailable && this.ble.isWifiAvailable()) {
-        this.showSection('wifi-section');
-        await this.wifi?.init();
-      }
-
-      // Show System section if RTC available
-      if (this.ble.isRtcAvailable && this.ble.isRtcAvailable()) {
-        this.showSection('system-section');
-        await this.initializeRtcUI();
-      }
-
-      // Load current configuration
-      await this.loadConfiguration();
-
-      // Show all sections
+      // FIRST: Update UI immediately (hide connect button, show config sections)
+      this.hideSection('connection-section');
       this.showSection('map-section');
       this.showSection('config-section');
       this.showSection('status-section');
@@ -142,16 +184,55 @@ class TideLightApp {
         this.initializeMap();
       }
 
-      // Subscribe to status updates
-      await this.ble.subscribeToStatus((status) => this.updateStatus(status));
+      // THEN: Try to load data with error handling
+      try {
+        // Load current configuration
+        await this.loadConfiguration();
 
-      // Load initial status
-      const status = await this.ble.readStatus();
-      this.updateStatus(status);
+        // Show WiFi section if available
+        if (this.ble.isWifiAvailable && this.ble.isWifiAvailable()) {
+          this.showSection('wifi-section');
+          try {
+            await this.wifi?.init();
+          } catch (wifiError) {
+            console.warn('[App] WiFi init failed:', wifiError);
+            this.showDebugError(`WiFi initialization failed: ${wifiError.message}`);
+          }
+        }
+
+        // Show System section if RTC available
+        if (this.ble.isRtcAvailable && this.ble.isRtcAvailable()) {
+          this.showSection('system-section');
+          try {
+            await this.initializeRtcUI();
+          } catch (rtcError) {
+            console.warn('[App] RTC init failed:', rtcError);
+            this.showDebugError(`RTC initialization failed: ${rtcError.message}`);
+          }
+        }
+
+        // Try to subscribe to status updates (optional - don't fail if unavailable)
+        try {
+          await this.ble.subscribeToStatus((status) => this.updateStatus(status));
+          const status = await this.ble.readStatus();
+          this.updateStatus(status);
+        } catch (statusError) {
+          console.warn('[App] Status updates not available:', statusError);
+          // Don't show error for missing status - it's optional
+        }
+
+      } catch (error) {
+        console.error('[App] Error during connection setup:', error);
+        this.showDebugError(error);
+        showError(`Connection setup error: ${error.message}`);
+      }
 
     } else {
       statusDot.className = 'status-dot';
       statusText.textContent = 'Not Connected';
+      
+      // Show connection section
+      this.showSection('connection-section');
       
       // Clear time update interval
       if (this.timeUpdateInterval) {
