@@ -38,7 +38,7 @@ class TideLightService(BlenoPrimaryService):
     - LED Count (3-255)
     - LED Invert (0/1)
     - Full Config (JSON)
-    - Status (JSON, notify)
+    - Status (JSON, read-only)
     - Error Code (0-4)
     - WiFi Networks (JSON array)
     - WiFi SSID (write)

@@ -300,25 +300,15 @@ class TideLightApp {
           }
         }
 
-        // Try to subscribe to status updates (optional - don't fail if unavailable)
+        // Read initial status and start polling (optional - don't fail if unavailable)
         try {
-          console.log('[App] Testing Status characteristic...');
+          console.log('[App] Reading Status characteristic...');
+          const initialStatus = await this.ble.readStatus();
+          console.log('[App] Status read successfully:', initialStatus);
+          this.updateStatus(initialStatus);
           
-          // Try reading first to see if characteristic works at all
-          console.log('[App] Attempting to read Status (before subscribe)...');
-          try {
-            const initialStatus = await this.ble.readStatus();
-            console.log('[App] ✓ Status read successfully:', initialStatus);
-            this.updateStatus(initialStatus);
-          } catch (readError) {
-            console.error('[App] ✗ Status read failed:', readError.message, readError);
-            throw new Error(`Status read failed: ${readError.message}`);
-          }
-          
-          // If read works, try subscribing
-          console.log('[App] Subscribing to Status characteristic notifications...');
-          await this.ble.subscribeToStatus((status) => this.updateStatus(status));
-          console.log('[App] ✓ Successfully subscribed to Status notifications');
+          // Poll status every 30 seconds
+          this.startStatusPolling();
           
         } catch (statusError) {
           console.error('[App] Status updates not available:', statusError.message, statusError);
@@ -347,6 +337,9 @@ class TideLightApp {
         clearInterval(this.timeUpdateInterval);
         this.timeUpdateInterval = null;
       }
+      
+      // Clear status polling interval
+      this.stopStatusPolling();
       
       // Hide sections
       this.hideSection('map-section');
@@ -584,6 +577,30 @@ class TideLightApp {
       }
     } catch (error) {
       console.error('[App] Error reading device time:', error);
+    }
+  }
+
+  startStatusPolling() {
+    // Stop any existing polling
+    this.stopStatusPolling();
+    
+    // Poll status every 30 seconds
+    console.log('[App] Starting status polling (every 30 seconds)');
+    this.statusPollingInterval = setInterval(async () => {
+      try {
+        const status = await this.ble.readStatus();
+        this.updateStatus(status);
+      } catch (error) {
+        console.error('[App] Error polling status:', error);
+      }
+    }, 30000); // 30 seconds
+  }
+
+  stopStatusPolling() {
+    if (this.statusPollingInterval) {
+      clearInterval(this.statusPollingInterval);
+      this.statusPollingInterval = null;
+      console.log('[App] Stopped status polling');
     }
   }
 
