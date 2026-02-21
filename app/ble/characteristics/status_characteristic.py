@@ -8,7 +8,6 @@ Properties: Read
 
 import logging
 from pybleno import Characteristic
-from ble.ble_data_utils import json_to_bytes
 
 
 class StatusCharacteristic(Characteristic):
@@ -51,7 +50,8 @@ class StatusCharacteristic(Characteristic):
         else:
             try:
                 status_json = self._status_provider.get_status_json()
-                data = json_to_bytes(status_json)
+                # Use .encode('utf-8') directly like System Time characteristic
+                data = status_json.encode('utf-8')
                 callback(Characteristic.RESULT_SUCCESS, data)
                 logging.info(f"[Status Characteristic] Read success ({len(data)} bytes)")
             except Exception as e:
