@@ -571,6 +571,6 @@ export class BLEManager {
    * @returns {boolean} True if WiFi is supported
    */
   isWifiAvailable() {
-    return this.characteristics.has(CHAR_UUIDS.WIFI_NETWORKS);
+    return !!this.characteristics[CHAR_UUIDS.WIFI_NETWORKS];
   }
 }
