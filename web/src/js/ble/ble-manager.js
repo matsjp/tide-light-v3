@@ -496,7 +496,7 @@ export class BLEManager {
 
     try {
       const value = await characteristic.readValue();
-      const jsonString = this._decoder.decode(value);
+      const jsonString = new TextDecoder().decode(value);
       return JSON.parse(jsonString);
     } catch (error) {
       console.error('[BLE] Error reading WiFi networks:', error);
@@ -520,7 +520,7 @@ export class BLEManager {
     }
 
     try {
-      const encodedValue = this._encoder.encode(ssid);
+      const encodedValue = new TextEncoder().encode(ssid);
       await characteristic.writeValue(encodedValue);
       console.log('[BLE] WiFi SSID written:', ssid);
     } catch (error) {
@@ -545,7 +545,7 @@ export class BLEManager {
     }
 
     try {
-      const encodedValue = this._encoder.encode(password);
+      const encodedValue = new TextEncoder().encode(password);
       await characteristic.writeValue(encodedValue);
       console.log('[BLE] WiFi password written, connection attempt started');
     } catch (error) {
@@ -570,7 +570,7 @@ export class BLEManager {
 
     try {
       const value = await characteristic.readValue();
-      const jsonString = this._decoder.decode(value);
+      const jsonString = new TextDecoder().decode(value);
       return JSON.parse(jsonString);
     } catch (error) {
       console.error('[BLE] Error reading WiFi status:', error);
@@ -596,7 +596,7 @@ export class BLEManager {
       await characteristic.startNotifications();
       characteristic.addEventListener('characteristicvaluechanged', (event) => {
         const value = event.target.value;
-        const jsonString = this._decoder.decode(value);
+        const jsonString = new TextDecoder().decode(value);
         const status = JSON.parse(jsonString);
         callback(status);
       });
