@@ -140,18 +140,25 @@ class BLEManager:
                 self._tide_cache
             )
             
-            # Initialize WiFi if available
-            wifi_handler = None
+            # Initialize WiFi handler (always create, even if hardware unavailable)
+            # The handler will report unavailable status through BLE characteristics
             try:
                 wifi_manager = WiFiManager()
+                wifi_handler = WiFiHandler(wifi_manager)
                 if wifi_manager.is_wifi_available():
-                    wifi_handler = WiFiHandler(wifi_manager)
                     print("[BLE Manager] WiFi support enabled")
                 else:
-                    print("[BLE Manager] WiFi hardware not available, WiFi characteristics disabled")
+                    print("[BLE Manager] WiFi hardware not available - characteristics will report unavailable status")
             except Exception as e:
                 print(f"[BLE Manager] WARNING: Failed to initialize WiFi: {e}")
-                print("[BLE Manager] WiFi characteristics will be disabled")
+                # Create WiFi handler anyway with a dummy manager to expose characteristics
+                try:
+                    wifi_manager = WiFiManager()
+                    wifi_handler = WiFiHandler(wifi_manager)
+                    print("[BLE Manager] WiFi handler created with unavailable status")
+                except Exception as e2:
+                    print(f"[BLE Manager] ERROR: Could not create WiFi handler at all: {e2}")
+                    wifi_handler = None
             
             # Create and return real server
             return BLEServerPybleno(

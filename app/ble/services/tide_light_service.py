@@ -81,7 +81,8 @@ class TideLightService(BlenoPrimaryService):
         if config_manager:
             characteristics.append(ResetCharacteristic(config_manager))
         
-        # Add WiFi characteristics if WiFi handler provided
+        # Always add WiFi characteristics (handler reports unavailable if no hardware)
+        # This ensures web interface can show WiFi section and communicate unavailability
         if wifi_handler:
             wifi_status_char = WiFiStatusCharacteristic(wifi_handler)
             wifi_handler.set_status_characteristic(wifi_status_char)

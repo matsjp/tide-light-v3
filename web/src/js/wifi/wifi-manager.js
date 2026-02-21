@@ -102,7 +102,10 @@ export class WiFiManager {
   _displayWifiStatus(status) {
     if (!this._wifiStatusDisplay) return;
 
-    if (status.connected) {
+    if (status.status === 'unavailable') {
+      this._wifiStatusDisplay.textContent = 'WiFi hardware not available';
+      this._wifiStatusDisplay.style.color = 'var(--text-secondary)';
+    } else if (status.connected) {
       this._wifiStatusDisplay.textContent = `Connected to ${status.ssid}`;
       this._wifiStatusDisplay.style.color = 'var(--success-color)';
     } else {
@@ -160,9 +163,21 @@ export class WiFiManager {
   async _scanNetworks() {
     if (this._isScanning) return;
     
+    // Check if WiFi characteristics are available
     if (!this._bleManager.isWifiAvailable()) {
       this._showError('WiFi not available on this device');
       return;
+    }
+
+    // Check if WiFi hardware is actually available
+    try {
+      const status = await this._bleManager.readWifiStatus();
+      if (status.status === 'unavailable') {
+        this._showError('WiFi hardware not available on this device');
+        return;
+      }
+    } catch (error) {
+      console.error('[WiFi] Error checking WiFi status:', error);
     }
 
     this._isScanning = true;

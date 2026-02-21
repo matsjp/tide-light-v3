@@ -323,18 +323,26 @@ export class BLEManager {
    */
   async readAll() {
     try {
-      // Read LDR only if available
-      const ldrPromise = this.isLdrAvailable() ? this.readLdrActive() : Promise.resolve(false);
-      
+      // Helper to safely read a characteristic, returning null if unavailable
+      const safeRead = async (readFn, defaultValue = null) => {
+        try {
+          return await readFn();
+        } catch (error) {
+          console.warn('[BLE] Could not read characteristic:', error.message);
+          return defaultValue;
+        }
+      };
+
+      // Read all characteristics, handling missing ones gracefully
       const [location, brightness, pattern, waveSpeed, ledCount, ledInvert, ldrActive, errorCode] = await Promise.all([
-        this.readLocation(),
-        this.readBrightness(),
-        this.readPattern(),
-        this.readWaveSpeed(),
-        this.readLedCount(),
-        this.readLedInvert(),
-        ldrPromise,
-        this.readErrorCode()
+        safeRead(() => this.readLocation(), { lat: 0, lon: 0 }),
+        safeRead(() => this.readBrightness(), 128),
+        safeRead(() => this.readPattern(), 'none'),
+        safeRead(() => this.readWaveSpeed(), 1.0),
+        safeRead(() => this.readLedCount(), 60),
+        safeRead(() => this.readLedInvert(), false),
+        safeRead(() => this.readLdrActive(), false),
+        safeRead(() => this.readErrorCode(), 0)
       ]);
 
       return {
