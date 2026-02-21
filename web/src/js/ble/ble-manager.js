@@ -270,7 +270,10 @@ export class BLEManager {
    */
   async readStatus() {
     const json = await this._readString(CHAR_UUIDS.STATUS);
-    return JSON.parse(json);
+    console.log('[BLE] Raw status JSON:', json);
+    const status = JSON.parse(json);
+    console.log('[BLE] Parsed status:', status);
+    return status;
   }
 
   /**
@@ -289,7 +292,9 @@ export class BLEManager {
     char.addEventListener('characteristicvaluechanged', (event) => {
       const value = event.target.value;
       const json = new TextDecoder().decode(value);
+      console.log('[BLE] Status notification JSON:', json);
       const status = JSON.parse(json);
+      console.log('[BLE] Parsed notification status:', status);
       callback(status);
       if (this.onStatusUpdate) {
         this.onStatusUpdate(status);

@@ -231,9 +231,17 @@
       </div>
       <div class="debug-content" id="debug-content">
         <div class="debug-message" id="debug-message"></div>
-        <button class="btn btn-small" id="debug-clear">Clear</button>
+        <div class="debug-actions">
+          <button class="btn btn-small" id="debug-show-logs">Show All Logs</button>
+          <button class="btn btn-small" id="debug-clear">Clear</button>
+        </div>
       </div>
     </div>
+
+    <!-- Floating Debug Button (for mobile) -->
+    <button id="floating-debug-btn" class="floating-debug-btn" title="Show console logs">
+      🐛
+    </button>
   </div>
 
   <!-- Notifications Container -->

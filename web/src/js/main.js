@@ -104,6 +104,8 @@ class TideLightApp {
     const debugToggle = document.getElementById('debug-toggle');
     const debugContent = document.getElementById('debug-content');
     const debugClear = document.getElementById('debug-clear');
+    const debugShowLogs = document.getElementById('debug-show-logs');
+    const floatingDebugBtn = document.getElementById('floating-debug-btn');
 
     // Toggle debug panel expand/collapse
     debugHeader.addEventListener('click', () => {
@@ -116,6 +118,87 @@ class TideLightApp {
     debugClear.addEventListener('click', () => {
       this.hideDebugPanel();
     });
+
+    // Show logs button
+    debugShowLogs.addEventListener('click', () => {
+      this.showConsoleLogs();
+    });
+
+    // Floating debug button
+    floatingDebugBtn.addEventListener('click', () => {
+      this.showConsoleLogs();
+    });
+
+    // Intercept console for mobile debugging
+    this.setupConsoleInterception();
+  }
+
+  setupConsoleInterception() {
+    const originalConsoleLog = console.log;
+    const originalConsoleError = console.error;
+    const originalConsoleWarn = console.warn;
+    
+    this.logBuffer = [];
+    const maxLogEntries = 100;
+
+    const addToBuffer = (level, args) => {
+      const message = args.map(arg => {
+        if (typeof arg === 'object') {
+          try {
+            return JSON.stringify(arg, null, 2);
+          } catch (e) {
+            return String(arg);
+          }
+        }
+        return String(arg);
+      }).join(' ');
+      
+      this.logBuffer.push({ level, message, time: new Date().toLocaleTimeString() });
+      if (this.logBuffer.length > maxLogEntries) {
+        this.logBuffer.shift();
+      }
+    };
+
+    console.log = (...args) => {
+      originalConsoleLog.apply(console, args);
+      addToBuffer('log', args);
+    };
+
+    console.error = (...args) => {
+      originalConsoleError.apply(console, args);
+      addToBuffer('error', args);
+    };
+
+    console.warn = (...args) => {
+      originalConsoleWarn.apply(console, args);
+      addToBuffer('warn', args);
+    };
+  }
+
+  showConsoleLogs() {
+    if (!this.logBuffer || this.logBuffer.length === 0) {
+      this.showDebugError('No logs captured yet. Try connecting to the device first.');
+      return;
+    }
+
+    const logsText = this.logBuffer.map(entry => 
+      `[${entry.time}] ${entry.level.toUpperCase()}: ${entry.message}`
+    ).join('\n\n');
+    
+    const debugPanel = document.getElementById('debug-panel');
+    const debugMessage = document.getElementById('debug-message');
+    const debugContent = document.getElementById('debug-content');
+    const debugToggle = document.getElementById('debug-toggle');
+    const debugTitle = document.querySelector('.debug-title');
+
+    debugTitle.textContent = '🐛 Console Logs';
+    debugMessage.textContent = logsText;
+    
+    // Show panel and expand it
+    debugPanel.style.display = 'block';
+    debugContent.classList.remove('collapsed');
+    debugToggle.classList.remove('collapsed');
+    debugToggle.textContent = '▼';
   }
 
   showDebugError(error) {
@@ -123,6 +206,10 @@ class TideLightApp {
     const debugMessage = document.getElementById('debug-message');
     const debugContent = document.getElementById('debug-content');
     const debugToggle = document.getElementById('debug-toggle');
+    const debugTitle = document.querySelector('.debug-title');
+
+    // Reset title to error mode
+    debugTitle.textContent = '⚠️ Error Details';
 
     // Format error message
     let errorText = '';
@@ -148,7 +235,9 @@ class TideLightApp {
 
   hideDebugPanel() {
     const debugPanel = document.getElementById('debug-panel');
+    const debugTitle = document.querySelector('.debug-title');
     debugPanel.style.display = 'none';
+    debugTitle.textContent = '⚠️ Error Details'; // Reset title
   }
 
 
@@ -552,72 +641,82 @@ class TideLightApp {
   updateStatus(status) {
     console.log('[App] Status update:', status);
 
-    // Update tide status
-    const tideStatusEl = document.getElementById('tide-status');
-    if (status.tide.available) {
-      const direction = status.tide.direction === 'rising' ? '↗️ Rising' : '↘️ Falling';
-      const progress = (status.tide.progress * 100).toFixed(1);
-      
-      tideStatusEl.innerHTML = `
-        <div class="status-row">
-          <span class="label">Direction:</span>
-          <span class="value">${direction}</span>
-        </div>
-        <div class="status-row">
-          <span class="label">Progress:</span>
-          <span class="value">
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: ${progress}%"></div>
-            </div>
-            ${progress}%
-          </span>
-        </div>
-        <div class="status-row">
-          <span class="label">Next Event:</span>
-          <span class="value">${status.tide.next_event.flag} at ${this.formatTime(status.tide.next_event.time)}</span>
-        </div>
-        <div class="status-row">
-          <span class="label">Last Event:</span>
-          <span class="value">${status.tide.last_event.flag} at ${this.formatTime(status.tide.last_event.time)}</span>
-        </div>
-      `;
-    } else {
-      tideStatusEl.innerHTML = `
-        <div class="no-data">
-          ${status.tide.reason || 'No tide data available'}
-        </div>
-      `;
+    try {
+      // Update tide status
+      const tideStatusEl = document.getElementById('tide-status');
+      if (status.tide && status.tide.available) {
+        const direction = status.tide.direction === 'rising' ? '↗️ Rising' : '↘️ Falling';
+        const progress = (status.tide.progress * 100).toFixed(1);
+        
+        tideStatusEl.innerHTML = `
+          <div class="status-row">
+            <span class="label">Direction:</span>
+            <span class="value">${direction}</span>
+          </div>
+          <div class="status-row">
+            <span class="label">Progress:</span>
+            <span class="value">
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${progress}%"></div>
+              </div>
+              ${progress}%
+            </span>
+          </div>
+          <div class="status-row">
+            <span class="label">Next Event:</span>
+            <span class="value">${status.tide.next_event.flag} at ${this.formatTime(status.tide.next_event.time)}</span>
+          </div>
+          <div class="status-row">
+            <span class="label">Last Event:</span>
+            <span class="value">${status.tide.last_event.flag} at ${this.formatTime(status.tide.last_event.time)}</span>
+          </div>
+        `;
+      } else {
+        tideStatusEl.innerHTML = `
+          <div class="no-data">
+            ${status.tide?.reason || 'No tide data available'}
+          </div>
+        `;
+      }
+
+      // Update cache info
+      const cacheInfoEl = document.getElementById('cache-info');
+      if (status.cache) {
+        cacheInfoEl.innerHTML = `
+          <div class="info-row">
+            <span class="label">Has Data:</span>
+            <span class="value">${status.cache.has_data ? '✓ Yes' : '✗ No'}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Location:</span>
+            <span class="value">${status.cache.latitude || 'N/A'}, ${status.cache.longitude || 'N/A'}</span>
+          </div>
+        `;
+      }
+
+      // Update system info
+      const systemInfoEl = document.getElementById('system-info');
+      if (status.system) {
+        const uptime = this.formatDuration(status.system.uptime_seconds);
+        systemInfoEl.innerHTML = `
+          <div class="info-row">
+            <span class="label">Uptime:</span>
+            <span class="value">${uptime}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Last Update:</span>
+            <span class="value">${this.formatTime(status.system.last_update)}</span>
+          </div>
+        `;
+      }
+
+      // Trigger automatic tide data validation
+      this.handleTideValidation(status);
+
+    } catch (error) {
+      console.error('[App] Error updating status display:', error);
+      this.showDebugError(`Status display error: ${error.message}\n\nStatus received: ${JSON.stringify(status, null, 2)}`);
     }
-
-    // Update cache info
-    const cacheInfoEl = document.getElementById('cache-info');
-    cacheInfoEl.innerHTML = `
-      <div class="info-row">
-        <span class="label">Has Data:</span>
-        <span class="value">${status.cache.has_data ? '✓ Yes' : '✗ No'}</span>
-      </div>
-      <div class="info-row">
-        <span class="label">Location:</span>
-        <span class="value">${status.cache.latitude || 'N/A'}, ${status.cache.longitude || 'N/A'}</span>
-      </div>
-    `;
-
-    // Update system info
-    const systemInfoEl = document.getElementById('system-info');
-    const uptime = this.formatDuration(status.system.uptime_seconds);
-    systemInfoEl.innerHTML = `
-      <div class="info-row">
-        <span class="label">Uptime:</span>
-        <span class="value">${uptime}</span>
-      </div>
-      <div class="info-row">
-        <span class="label">Last Update:</span>
-        <span class="value">${this.formatTime(status.system.last_update)}</span>
-      </div>
-    `;
-
-    // Trigger automatic tide data validation
-    this.handleTideValidation(status);
   }
 
   async handleTideValidation(status) {
