@@ -2,7 +2,7 @@
 WiFi Status Characteristic for Tide Light.
 
 Provides current WiFi connection status as JSON.
-UUID: 12345678-1234-5678-1234-56789abcdefd
+UUID: ec0d (expands to 0000ec0d-0000-1000-8000-00805f9b34fb)
 Properties: Read, Notify
 """
 
@@ -35,31 +35,42 @@ class WiFiStatusCharacteristic(Characteristic):
             wifi_handler: WiFiHandler instance with get_wifi_status method
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdefd',
+            'uuid': 'ec0d',
             'properties': ['read', 'notify'],
             'value': None
         })
         self._wifi_handler = wifi_handler
         self._updateValueCallback = None
+        self._last_status_data = b''  # Cache for offset-based reads
     
     def onReadRequest(self, offset, callback):
         """
-        Handle read request for WiFi status.
+        Handle read request for WiFi status (supports offset-based reads).
         
         Args:
-            offset: Byte offset (must be 0)
+            offset: Byte offset for chunked reads
             callback: Callback function(result_code, data)
         """
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
-        else:
-            try:
+        logging.info(f"[WiFi Status Characteristic] onReadRequest called! offset={offset}")
+        try:
+            if offset == 0:
+                # First read - get fresh status and cache
                 status_json = self._wifi_handler.get_wifi_status()
-                data = json_to_bytes(status_json)
-                callback(Characteristic.RESULT_SUCCESS, data)
-            except Exception as e:
-                logging.exception(f"WiFi status read error: {e}")
-                callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
+                self._last_status_data = json_to_bytes(status_json)
+                logging.info(f"[WiFi Status Characteristic] Status size: {len(self._last_status_data)} bytes")
+                callback(Characteristic.RESULT_SUCCESS, self._last_status_data)
+            elif offset < len(self._last_status_data):
+                # Subsequent read - return cached data from offset
+                chunk = self._last_status_data[offset:]
+                logging.info(f"[WiFi Status Characteristic] Offset {offset} - returning remaining {len(chunk)} bytes")
+                callback(Characteristic.RESULT_SUCCESS, chunk)
+            else:
+                # Offset beyond data length
+                logging.warning(f"[WiFi Status Characteristic] Offset {offset} beyond data length")
+                callback(Characteristic.RESULT_INVALID_OFFSET, None)
+        except Exception as e:
+            logging.exception(f"[WiFi Status Characteristic] Read error: {e}")
+            callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
     
     def onSubscribe(self, maxValueSize, updateValueCallback):
         """

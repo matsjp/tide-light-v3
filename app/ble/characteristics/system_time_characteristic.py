@@ -2,7 +2,7 @@
 System Time Characteristic for Tide Light.
 
 Handles system time read/write in ISO 8601 format for RTC synchronization.
-UUID: 12345678-1234-5678-1234-56789abcdeff
+UUID: ec0f (expands to 0000ec0f-0000-1000-8000-00805f9b34fb)
 Properties: Read, Write
 """
 
@@ -28,7 +28,7 @@ class SystemTimeCharacteristic(Characteristic):
             rtc_manager: RTCManager instance for time operations
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdeff',
+            'uuid': 'ec0f',
             'properties': ['read', 'write'],
             'value': None
         })

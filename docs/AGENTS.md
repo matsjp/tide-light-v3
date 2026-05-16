@@ -223,6 +223,141 @@ pip install rpi_ws281x
 - Don't hardcode file paths - use constants
 - Always validate external data before using it
 
+## BLE Architecture Issues
+
+### Technical Debt: ERROR Characteristic (ec09)
+
+**Status**: ✅ **REMOVED** - This technical debt has been cleaned up.
+
+**What Was Removed**:
+- Deleted `app/ble/characteristics/error_characteristic.py`
+- Removed `_last_error` tracking from `BLEConfigHandler`
+- Removed `readErrorCode()` and `getErrorMessage()` from web BLE managers
+- Removed error checking code from `main.js` applyChanges()
+- Removed ERROR from `CHAR_UUIDS` in web constants
+- Simplified all `update_*()` methods to return error codes directly
+
+**Why It Was Removed**:
+- BLE write operations already return error codes via the write callback/response
+- Required a redundant separate read operation after every write
+- Violated BLE best practices and added unnecessary latency
+
+**Current Implementation**:
+- Each characteristic's `onWriteRequest()` returns proper error codes via the callback parameter
+- `callback(Characteristic.RESULT_SUCCESS)` for success
+- `callback(0x80 + error_code)` for validation errors
+- The Web Bluetooth API receives these responses directly (standard BLE pattern)
+
+### Technical Debt: FULL_CONFIG Characteristic (ec07)
+
+**Status**: ✅ **REMOVED** - This technical debt has been cleaned up.
+
+**What Was Removed**:
+- Deleted `app/ble/characteristics/full_config_characteristic.py` (99 lines)
+- Removed `validate_full_config()`, `update_full_config()`, and `get_full_config()` from `BLEConfigHandler`
+- Removed `readFullConfig()` and `writeFullConfig()` from web BLE managers
+- Removed FULL_CONFIG from `CHAR_UUIDS` in web constants
+- Removed `CHAR_FULL_CONFIG_UUID` constant and metadata from Python constants
+
+**Why It Was Removed**:
+- Not used anywhere in the web interface (no UI or background usage)
+- Individual characteristics already provide granular read/write access to all settings
+- Exposed internal settings (bluetooth config, hardware pins) that shouldn't be modifiable via BLE
+- No backup/restore or import/export feature existed to utilize it
+- Added complexity without providing value
+
+**Original Intent**:
+- Was intended for bulk configuration operations
+- Seemed useful during initial design but never got used in practice
+
+## Web Bluetooth API Limitations
+
+### Critical Issue: Parallel GATT Operations Not Supported
+
+**Problem**: Web Bluetooth API (especially on mobile) does NOT support simultaneous GATT read or write operations. Using `Promise.all()` for parallel BLE operations will cause `NotSupportedError: GATT operation failed for unknown reason`.
+
+**Symptoms**:
+- First characteristic read/write succeeds
+- Subsequent parallel operations fail with `NotSupportedError`
+- Error message: "GATT operation failed for unknown reason"
+- No detailed error stack or explanation
+
+**Solution**: Always perform BLE operations SEQUENTIALLY, never in parallel.
+
+**Bad Pattern (WILL FAIL)**:
+```javascript
+// ❌ This WILL FAIL - parallel reads
+const [brightness, pattern, waveSpeed] = await Promise.all([
+  this.readBrightness(),
+  this.readPattern(),
+  this.readWaveSpeed()
+]);
+
+// ❌ This WILL FAIL - parallel writes  
+await Promise.all([
+  this.writeBrightness(50),
+  this.writePattern('wave'),
+  this.writeWaveSpeed(0.5)
+]);
+```
+
+**Good Pattern (WORKS)**:
+```javascript
+// ✅ This WORKS - sequential reads
+const brightness = await this.readBrightness();
+const pattern = await this.readPattern();
+const waveSpeed = await this.readWaveSpeed();
+
+// ✅ This WORKS - sequential writes
+await this.writeBrightness(50);
+await this.writePattern('wave');
+await this.writeWaveSpeed(0.5);
+```
+
+**Implementation Notes**:
+- This applies to ALL BLE operations: reads, writes, and notifications
+- The limitation is in the Web Bluetooth API/browser implementation, not in the peripheral device
+- Sequential operations are slower but necessary for reliability
+- This is particularly important on mobile devices where the limitation is more strict
+
+### WiFi Network Scanning: Notification-Based Protocol
+
+**Problem**: Web Bluetooth's `readValue()` only returns the first ~512 bytes of a characteristic, even though BLE supports longer reads via offset operations. This limited WiFi network scans to only 5-8 networks.
+
+**Solution**: Use BLE notifications to stream unlimited networks in batches.
+
+**Implementation**:
+- WiFi Networks characteristic (ec0a) uses `notify` property (not `read`)
+- Client subscribes → automatically triggers WiFi scan on Pi
+- Pi sends networks in batches of 3 per notification (~150-200 bytes each)
+- Empty array `[]` signals scan completion
+- Client has 60-second timeout as fallback
+- 100ms delay between notifications prevents BLE throttling
+
+**Protocol Flow**:
+```
+1. Client: characteristic.startNotifications()
+2. Pi: Starts WiFi scan (2-5 seconds)
+3. Pi: Sends notification with [network1, network2, network3]
+4. Pi: Sends notification with [network4, network5, network6]
+   ... continues for all networks ...
+5. Pi: Sends notification with [] (completion signal)
+6. Client: Stops notifications, displays all networks
+```
+
+**Benefits**:
+- ✅ No size limit - can send unlimited networks
+- ✅ Proper BLE design pattern for streaming data
+- ✅ Shows ALL available networks sorted by signal strength
+- ✅ Robust with timeout fallback
+- ✅ Low memory on Raspberry Pi (streams instead of caching)
+
+**Files Modified**:
+- `app/ble/characteristics/wifi_networks_characteristic.py` - Notification-based streaming
+- `app/ble/wifi_handler.py` - Removed 5-network limit
+- `web/src/js/ble/ble-manager.js` - Notification subscription with 60s timeout
+- `web/src/js/wifi/wifi-manager.js` - Updated loading message
+
 ## WS281x LED Strip Behavior
 
 The application controls a WS281x LED strip to visualize tide state in real-time.

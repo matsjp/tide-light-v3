@@ -2,7 +2,7 @@
 Brightness Characteristic for Tide Light.
 
 Handles LED brightness as a uint8 value (0-255).
-UUID: 12345678-1234-5678-1234-56789abcdef2
+UUID: ec02 (expands to 0000ec02-0000-1000-8000-00805f9b34fb)
 Properties: Read, Write
 """
 
@@ -26,7 +26,7 @@ class BrightnessCharacteristic(Characteristic):
             config_handler: BLEConfigHandler instance for validation/updates
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdef2',
+            'uuid': 'ec02',  # SHORT UUID
             'properties': ['read', 'write'],
             'value': None
         })
@@ -37,19 +37,16 @@ class BrightnessCharacteristic(Characteristic):
         Handle read request for brightness.
         
         Args:
-            offset: Byte offset (must be 0)
+            offset: Byte offset
             callback: Callback function(result_code, data)
         """
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
-        else:
-            try:
-                brightness = self._handler.get_brightness()
-                data = uint8_to_bytes(brightness)
-                callback(Characteristic.RESULT_SUCCESS, data)
-            except Exception as e:
-                logging.exception(f"Brightness read error: {e}")
-                callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
+        try:
+            brightness = self._handler.get_brightness()
+            data = uint8_to_bytes(brightness)
+            callback(Characteristic.RESULT_SUCCESS, data[offset:])
+        except Exception as e:
+            logging.exception(f"Brightness read error: {e}")
+            callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
     
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         """

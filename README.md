@@ -33,9 +33,98 @@ tide-light-v3/
   - [Agent Guidelines](docs/AGENTS.md) - Development guidelines
   - [BLE Implementation](docs/BLE_README.md) - BLE server details
 
-## Quick Start
+## Installation
 
-### Python Application (Raspberry Pi)
+### Quick Start
+
+For detailed first-time setup instructions, see **[Raspberry Pi Setup Guide](docs/RASPBERRY_PI_SETUP.md)**.
+
+### Prerequisites
+
+- Raspberry Pi (any model with GPIO, I2C, and Bluetooth LE)
+- Raspberry Pi OS (Lite or Desktop, 64-bit recommended)
+- SSH enabled
+- Internet connection (for initial installation and updates)
+- Hardware: WS281x LED strip, DS3231 RTC module (optional), LDR (optional)
+
+### Installation Steps
+
+1. **Flash Raspberry Pi OS** using [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
+   - Enable SSH during imaging (required for headless setup)
+   - Configure WiFi credentials (recommended)
+
+2. **SSH into your Raspberry Pi:**
+   ```bash
+   ssh pi@raspberrypi.local
+   ```
+
+3. **Update system packages:**
+   ```bash
+   sudo apt-get update && sudo apt-get upgrade -y
+   ```
+
+4. **Clone repository:**
+   ```bash
+   cd /home/pi
+   git clone https://github.com/matsjp/tide-light-v3.git
+   cd tide-light-v3
+   ```
+
+5. **Run installation script:**
+   ```bash
+   cd app/scripts
+   sudo ./install_complete.sh
+   ```
+
+6. **Reboot when prompted:**
+   ```bash
+   sudo reboot
+   ```
+
+7. **Configure location** via BLE or web interface (required for tide data)
+
+### What Gets Installed
+
+- Python dependencies (kartverket_tide_api, rpi_ws281x, etc.)
+- Systemd services (tide-light, auto-updater)
+- RTC support (optional, prompted during installation)
+- Bluetooth HCI configuration (for BLE peripheral mode)
+
+### Post-Installation
+
+- Application auto-starts on boot
+- Auto-updates from GitHub main branch (2 minutes after boot)
+- Configure via:
+  - **BLE:** Scan for "Tide Light" device
+  - **Web Interface:** `http://<pi-ip-address>:3000`
+  - **CLI:** Edit `/home/pi/tide-light-v3/app/config.json`
+
+### Troubleshooting
+
+See [Raspberry Pi Setup Guide](docs/RASPBERRY_PI_SETUP.md#troubleshooting) for common issues and solutions.
+
+### Useful Commands
+
+```bash
+# Check service status
+sudo systemctl status tide-light
+
+# View logs
+sudo journalctl -u tide-light -f
+
+# Restart service
+sudo systemctl restart tide-light
+
+# Factory reset configuration
+sudo /home/pi/tide-light-v3/app/scripts/factory_reset.sh
+
+# Check RTC status (if installed)
+tide-rtc status
+```
+
+### Development Setup
+
+#### Python Application (Development)
 
 ```bash
 cd app
@@ -43,9 +132,9 @@ pip install -r requirements.txt
 python main.py
 ```
 
-See [`app/README.md`](app/README.md) for detailed setup instructions.
+See [`app/README.md`](app/README.md) for detailed development instructions.
 
-### Web Interface (Development)
+#### Web Interface (Development)
 
 ```bash
 cd web

@@ -50,3 +50,6 @@ nul
 # Development
 .cache/
 .temp/
+
+# Syncthing
+.stfolder/

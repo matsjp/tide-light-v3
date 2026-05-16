@@ -1,7 +1,7 @@
 {
   "config_version": 1,
   "bluetooth": {
-    "use_fake_library": true,
+    "use_fake_library": false,
     "device_name": "Tide Light"
   },
   "tide": {
@@ -14,7 +14,7 @@
     "count": 60,
     "brightness": 50,
     "invert": false,
-    "use_mock": true
+    "use_mock": false
   },
   "ldr": {
     "enabled": false,

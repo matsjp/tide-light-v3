@@ -33,10 +33,11 @@ export class BLEManager {
     try {
       console.log('[BLE] Requesting device...');
       
-      // Request device with service filter
+      // Request device - use acceptAllDevices with optionalServices
+      // This matches the working v2 project pattern
       this.device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: [SERVICE_UUID] }],
-        optionalServices: [SERVICE_UUID]
+        acceptAllDevices: true,
+        optionalServices: [SERVICE_UUID]  // 0xec00 in numeric hex format
       });
 
       console.log(`[BLE] Selected device: ${this.device.name}`);
@@ -50,7 +51,7 @@ export class BLEManager {
       console.log('[BLE] Connecting to GATT server...');
       this.server = await this.device.gatt.connect();
 
-      // Get service
+      // Get service - use numeric hex UUID
       console.log('[BLE] Getting service...');
       this.service = await this.server.getPrimaryService(SERVICE_UUID);
 
@@ -233,8 +234,15 @@ export class BLEManager {
    */
   async syncTimeNow() {
     const now = new Date();
-    // Format as ISO 8601 without milliseconds or timezone (local time)
-    const isoString = now.toISOString().split('.')[0];
+    // Format as ISO 8601 in LOCAL time (not UTC)
+    // Example: "2026-05-15T16:34:51" for local time
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const isoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     await this.writeSystemTime(isoString);
   }
 
@@ -250,30 +258,11 @@ export class BLEManager {
   }
 
   /**
-   * Read full config JSON
-   */
-  async readFullConfig() {
-    const json = await this._readString(CHAR_UUIDS.FULL_CONFIG);
-    return JSON.parse(json);
-  }
-
-  /**
-   * Write full config JSON
-   */
-  async writeFullConfig(config) {
-    const json = JSON.stringify(config);
-    await this._writeString(CHAR_UUIDS.FULL_CONFIG, json);
-  }
-
-  /**
    * Read status JSON
    */
   async readStatus() {
     const json = await this._readString(CHAR_UUIDS.STATUS);
-    console.log('[BLE] Raw status JSON:', json);
-    const status = JSON.parse(json);
-    console.log('[BLE] Parsed status:', status);
-    return status;
+    return JSON.parse(json);
   }
 
   /**
@@ -323,20 +312,6 @@ export class BLEManager {
   }
 
   /**
-   * Read error code
-   */
-  async readErrorCode() {
-    return await this._readUint8(CHAR_UUIDS.ERROR);
-  }
-
-  /**
-   * Get error message for error code
-   */
-  getErrorMessage(errorCode) {
-    return ERROR_MESSAGES[errorCode] || `Unknown error (${errorCode})`;
-  }
-
-  /**
    * Read all configuration values at once
    */
   async readAll() {
@@ -351,17 +326,15 @@ export class BLEManager {
         }
       };
 
-      // Read all characteristics, handling missing ones gracefully
-      const [location, brightness, pattern, waveSpeed, ledCount, ledInvert, ldrActive, errorCode] = await Promise.all([
-        safeRead(() => this.readLocation(), { lat: 0, lon: 0 }),
-        safeRead(() => this.readBrightness(), 128),
-        safeRead(() => this.readPattern(), 'none'),
-        safeRead(() => this.readWaveSpeed(), 1.0),
-        safeRead(() => this.readLedCount(), 60),
-        safeRead(() => this.readLedInvert(), false),
-        safeRead(() => this.readLdrActive(), false),
-        safeRead(() => this.readErrorCode(), 0)
-      ]);
+      // Read all characteristics SEQUENTIALLY (BLE doesn't support parallel reads)
+      // Using Promise.all() causes "NotSupportedError" on some characteristics
+      const location = await safeRead(() => this.readLocation(), { lat: 0, lon: 0 });
+      const brightness = await safeRead(() => this.readBrightness(), 128);
+      const pattern = await safeRead(() => this.readPattern(), 'none');
+      const waveSpeed = await safeRead(() => this.readWaveSpeed(), 1.0);
+      const ledCount = await safeRead(() => this.readLedCount(), 60);
+      const ledInvert = await safeRead(() => this.readLedInvert(), false);
+      const ldrActive = await safeRead(() => this.readLdrActive(), false);
 
       return {
         location,
@@ -370,9 +343,7 @@ export class BLEManager {
         waveSpeed,
         ledCount,
         ledInvert,
-        ldrActive,
-        errorCode,
-        errorMessage: this.getErrorMessage(errorCode)
+        ldrActive
       };
     } catch (error) {
       console.error('[BLE] Error reading all values:', error);
@@ -391,17 +362,14 @@ export class BLEManager {
       const charName = getCharName(uuid);
       try {
         const char = await this.service.getCharacteristic(uuid);
-        this.characteristics[uuid] = char;
+        // Store with string key to ensure consistent lookup
+        const key = String(uuid);
+        this.characteristics[key] = char;
         
-        // Extra logging for Status characteristic
-        if (uuid === CHAR_UUIDS.STATUS) {
-          console.log(`[BLE] ✓ Loaded: ${charName} (${uuid})`);
-          console.log(`[BLE]   Properties:`, char.properties);
-          console.log(`[BLE]   Notify supported:`, char.properties.notify);
-          console.log(`[BLE]   Read supported:`, char.properties.read);
-        } else {
-          console.log(`[BLE] ✓ Loaded: ${charName} (${uuid})`);
-        }
+        console.log(`[BLE] ✓ Loaded: ${charName} (${uuid})`);
+        console.log(`[BLE]   Stored with key: ${key} (type: ${typeof key})`);
+        console.log(`[BLE]   UUID: ${char.uuid}`);
+        console.log(`[BLE]   Properties - read: ${char.properties.read}, write: ${char.properties.write}, notify: ${char.properties.notify}`);
       } catch (error) {
         console.warn(`[BLE] ✗ Failed: ${charName} (${uuid}) - ${error.message}`);
       }
@@ -410,66 +378,78 @@ export class BLEManager {
     console.log(`[BLE] Successfully loaded ${Object.keys(this.characteristics).length}/${uuids.length} characteristics`);
     
     // Log which characteristics are missing
-    const missing = uuids.filter(uuid => !this.characteristics[uuid]);
+    const missing = uuids.filter(uuid => !this.characteristics[String(uuid)]);
     if (missing.length > 0) {
       console.warn(`[BLE] Missing ${missing.length} characteristics:`, missing.map(uuid => getCharName(uuid)));
     }
+    
+    // Debug: Log all loaded characteristic UUIDs
+    console.log(`[BLE] Loaded characteristic UUIDs:`, Object.keys(this.characteristics));
   }
 
   async _readString(uuid) {
-    const char = this.characteristics[uuid];
+    // Convert UUID to string for consistent lookup
+    const key = String(uuid);
+    const char = this.characteristics[key];
     const charName = getCharName(uuid);
-    if (!char) throw new Error(`Characteristic ${charName} not found`);
-
-    // Skip logging for System Time to reduce noise (it's polled every second)
-    const skipLogging = uuid === CHAR_UUIDS.SYSTEM_TIME;
     
-    if (!skipLogging) {
-      console.log(`[BLE] Reading ${charName}...`);
+    if (!char) {
+      const error = `Characteristic ${charName} not found`;
+      console.error(`[BLE] ${error}`);
+      throw new Error(error);
     }
-    
+
     try {
       const value = await char.readValue();
       const decoded = new TextDecoder().decode(value);
-      
-      if (!skipLogging) {
-        console.log(`[BLE] ✓ Read ${decoded.length} bytes from ${charName}`);
-      }
-      
       return decoded;
     } catch (error) {
-      console.error(`[BLE] ✗ Error reading ${charName}:`, error.message, error);
+      console.error(`[BLE] Error reading ${charName}:`, error);
       throw error;
     }
   }
 
   async _writeString(uuid, value) {
-    const char = this.characteristics[uuid];
+    // Convert UUID to string for consistent lookup
+    const key = String(uuid);
+    const char = this.characteristics[key];
     if (!char) throw new Error(`Characteristic ${uuid} not found`);
 
     const encoder = new TextEncoder();
     await char.writeValue(encoder.encode(value));
   }
 
+  async _writeUint8(uuid, value) {
+    // Convert UUID to string for consistent lookup
+    const key = String(uuid);
+    const char = this.characteristics[key];
+    if (!char) throw new Error(`Characteristic ${uuid} not found`);
+
+    const buffer = new Uint8Array([value]);
+    await char.writeValue(buffer);
+  }
+
   async _readUint8(uuid) {
-    const char = this.characteristics[uuid];
+    // Convert UUID to string for consistent lookup
+    const key = String(uuid);
+    const char = this.characteristics[key];
     const charName = getCharName(uuid);
+    
     if (!char) throw new Error(`Characteristic ${charName} not found`);
 
-    console.log(`[BLE] Reading ${charName}...`);
     try {
       const value = await char.readValue();
-      const uint8Value = value.getUint8(0);
-      console.log(`[BLE] ✓ Read ${charName}: ${uint8Value}`);
-      return uint8Value;
+      return value.getUint8(0);
     } catch (error) {
-      console.error(`[BLE] ✗ Error reading ${charName}:`, error.message, error);
+      console.error(`[BLE] Error reading ${charName}:`, error);
       throw error;
     }
   }
 
   async _writeUint8(uuid, value) {
-    const char = this.characteristics[uuid];
+    // Convert UUID to string for consistent lookup
+    const key = String(uuid);
+    const char = this.characteristics[key];
     if (!char) throw new Error(`Characteristic ${uuid} not found`);
 
     const buffer = new Uint8Array([value]);
@@ -521,24 +501,84 @@ export class BLEManager {
    * This triggers a scan on the device.
    * @returns {Promise<Array>} Array of network objects: [{ssid, signal, security}, ...]
    */
+  /**
+   * Read WiFi networks using notification-based protocol.
+   * Subscribes to notifications, receives network batches, waits for completion signal.
+   * @returns {Promise<Array>} Array of network objects
+   */
   async readWifiNetworks() {
     if (!this.isConnected) {
       throw new Error('Device not connected');
     }
 
-    const characteristic = this.characteristics[CHAR_UUIDS.WIFI_NETWORKS];
+    const key = String(CHAR_UUIDS.WIFI_NETWORKS);
+    const characteristic = this.characteristics[key];
+    
     if (!characteristic) {
       throw new Error('WiFi Networks characteristic not available');
     }
 
-    try {
-      const value = await characteristic.readValue();
-      const jsonString = new TextDecoder().decode(value);
-      return JSON.parse(jsonString);
-    } catch (error) {
-      console.error('[BLE] Error reading WiFi networks:', error);
-      throw error;
-    }
+    return new Promise((resolve, reject) => {
+      const networks = [];
+      let timeoutId = null;
+      
+      // Cleanup function
+      const cleanup = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        characteristic.removeEventListener('characteristicvaluechanged', handleNotification);
+        characteristic.stopNotifications().catch((error) => {
+          console.warn('[BLE] Error stopping notifications:', error);
+        });
+      };
+      
+      // Set 60-second timeout
+      timeoutId = setTimeout(() => {
+        console.log(`[BLE] WiFi scan timeout after 60 seconds - returning ${networks.length} collected networks`);
+        cleanup();
+        resolve(networks);
+      }, 60000);
+      
+      // Handle incoming notifications
+      const handleNotification = (event) => {
+        try {
+          const value = event.target.value;
+          const jsonString = new TextDecoder().decode(value);
+          console.log(`[BLE] Received notification: "${jsonString.substring(0, 100)}${jsonString.length > 100 ? '...' : ''}"`);
+          
+          const batch = JSON.parse(jsonString);
+          
+          if (batch.length === 0) {
+            // Empty array signals scan completion
+            console.log(`[BLE] WiFi scan complete - received ${networks.length} total networks`);
+            cleanup();
+            resolve(networks);
+          } else {
+            // Add networks from this batch
+            networks.push(...batch);
+            console.log(`[BLE] Received batch of ${batch.length} networks (total: ${networks.length})`);
+          }
+        } catch (error) {
+          console.error('[BLE] Error parsing notification:', error);
+          // Don't reject - continue waiting for more notifications
+          // The timeout will handle if this was fatal
+        }
+      };
+      
+      // Subscribe to notifications and start scan
+      console.log('[BLE] Subscribing to WiFi scan notifications...');
+      characteristic.addEventListener('characteristicvaluechanged', handleNotification);
+      characteristic.startNotifications()
+        .then(() => {
+          console.log('[BLE] ✓ Subscribed - WiFi scan started on device');
+        })
+        .catch((error) => {
+          console.error('[BLE] Failed to start notifications:', error);
+          cleanup();
+          reject(error);
+        });
+    });
   }
 
   /**
@@ -551,7 +591,8 @@ export class BLEManager {
       throw new Error('Device not connected');
     }
 
-    const characteristic = this.characteristics[CHAR_UUIDS.WIFI_SSID];
+    const key = String(CHAR_UUIDS.WIFI_SSID);
+    const characteristic = this.characteristics[key];
     if (!characteristic) {
       throw new Error('WiFi SSID characteristic not available');
     }
@@ -576,7 +617,8 @@ export class BLEManager {
       throw new Error('Device not connected');
     }
 
-    const characteristic = this.characteristics[CHAR_UUIDS.WIFI_PASSWORD];
+    const key = String(CHAR_UUIDS.WIFI_PASSWORD);
+    const characteristic = this.characteristics[key];
     if (!characteristic) {
       throw new Error('WiFi Password characteristic not available');
     }
@@ -600,7 +642,8 @@ export class BLEManager {
       throw new Error('Device not connected');
     }
 
-    const characteristic = this.characteristics[CHAR_UUIDS.WIFI_STATUS];
+    const key = String(CHAR_UUIDS.WIFI_STATUS);
+    const characteristic = this.characteristics[key];
     if (!characteristic) {
       throw new Error('WiFi Status characteristic not available');
     }
@@ -624,7 +667,8 @@ export class BLEManager {
       throw new Error('Device not connected');
     }
 
-    const characteristic = this.characteristics[CHAR_UUIDS.WIFI_STATUS];
+    const key = String(CHAR_UUIDS.WIFI_STATUS);
+    const characteristic = this.characteristics[key];
     if (!characteristic) {
       throw new Error('WiFi Status characteristic not available');
     }
@@ -649,6 +693,10 @@ export class BLEManager {
    * @returns {boolean} True if WiFi is supported
    */
   isWifiAvailable() {
-    return !!this.characteristics[CHAR_UUIDS.WIFI_NETWORKS];
+    const key = String(CHAR_UUIDS.WIFI_NETWORKS);
+    const available = !!this.characteristics[key];
+    console.log('[BLE] isWifiAvailable() - key:', key, 'available:', available);
+    console.log('[BLE] Available keys:', Object.keys(this.characteristics));
+    return available;
   }
 }

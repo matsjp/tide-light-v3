@@ -2,7 +2,7 @@
 LDR Active Characteristic for Tide Light.
 
 Handles LDR enable/disable as a boolean (0x00 = disabled, 0x01 = enabled).
-UUID: 12345678-1234-5678-1234-56789abcdefe
+UUID: ec0e (expands to 0000ec0e-0000-1000-8000-00805f9b34fb)
 Properties: Read, Write
 """
 
@@ -26,7 +26,7 @@ class LdrActiveCharacteristic(Characteristic):
             config_handler: BLEConfigHandler instance for validation/updates
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdefe',
+            'uuid': 'ec0e',
             'properties': ['read', 'write'],
             'value': None
         })

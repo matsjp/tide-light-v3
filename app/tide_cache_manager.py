@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 from pathlib import Path
 from datetime import datetime
@@ -120,6 +121,7 @@ class TideCacheManager:
     # -----------------------------
     def invalidate_all(self):
         """Clear all cached tide data AND location metadata."""
+        logging.debug("[TideCache] Invalidating all cached data and location metadata")
         with self.lock:
             with self.conn:
                 self.conn.execute("DELETE FROM waterlevels")
@@ -141,6 +143,7 @@ class TideCacheManager:
             latitude: Latitude of the location (stored in metadata only)
             longitude: Longitude of the location (stored in metadata only)
         """
+        logging.debug(f"[TideCache] Inserting {len(waterlevels)} waterlevel events for ({latitude}, {longitude})")
         with self.lock:
             with self.conn:
                 # Insert waterlevel data (no lat/lon in rows)
@@ -151,6 +154,7 @@ class TideCacheManager:
                 )
                 # Store location metadata
                 self.set_cached_location(latitude, longitude)
+        logging.debug(f"[TideCache] Successfully inserted waterlevels")
 
     # -----------------------------
     # Query waterlevels
@@ -177,6 +181,8 @@ class TideCacheManager:
                 (start.isoformat(), end.isoformat())
             ).fetchall()
 
+        logging.debug(f"[TideCache] Query returned {len(rows)} waterlevel events between {start.isoformat()} and {end.isoformat()}")
+        
         return [
             WaterLevel(time=datetime.fromisoformat(row["time"]), flag=WaterLevelFlag(row["flag"]))
             for row in rows
@@ -203,3 +209,22 @@ class TideCacheManager:
                 (start.isoformat(), end.isoformat())
             ).fetchone()
         return row is not None
+
+    # -----------------------------
+    # Resource cleanup
+    # -----------------------------
+    def close(self):
+        """Close database connection."""
+        with self.lock:
+            if self.conn:
+                self.conn.close()
+                self.conn = None
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensure connection is closed."""
+        self.close()
+        return False  # Don't suppress exceptions

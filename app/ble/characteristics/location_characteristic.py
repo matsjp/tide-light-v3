@@ -2,7 +2,7 @@
 Location Characteristic for Tide Light.
 
 Handles tide location as a "latitude,longitude" string.
-UUID: 12345678-1234-5678-1234-56789abcdef1
+UUID: ec01 (expands to 0000ec01-0000-1000-8000-00805f9b34fb)
 Properties: Read, Write
 """
 
@@ -26,7 +26,7 @@ class LocationCharacteristic(Characteristic):
             config_handler: BLEConfigHandler instance for validation/updates
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdef1',
+            'uuid': 'ec01',
             'properties': ['read', 'write'],
             'value': None
         })
@@ -37,19 +37,17 @@ class LocationCharacteristic(Characteristic):
         Handle read request for location.
         
         Args:
-            offset: Byte offset (must be 0)
+            offset: Byte offset
             callback: Callback function(result_code, data)
         """
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
-        else:
-            try:
-                location_str = self._handler.get_location()
-                data = string_to_bytes(location_str)
-                callback(Characteristic.RESULT_SUCCESS, data)
-            except Exception as e:
-                logging.exception(f"Location read error: {e}")
-                callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
+        try:
+            location_str = self._handler.get_location()
+            data = string_to_bytes(location_str)
+            # Return data from offset onwards (supports chunked reads)
+            callback(Characteristic.RESULT_SUCCESS, data[offset:])
+        except Exception as e:
+            logging.exception(f"Location read error: {e}")
+            callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
     
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         """

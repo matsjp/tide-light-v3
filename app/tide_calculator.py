@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from typing import Optional
@@ -55,6 +56,7 @@ class TideCalculator:
         
         if len(waterlevels) < 2:
             # Need at least 2 events (previous and next)
+            logging.debug(f"[TideCalculator] Insufficient data: only {len(waterlevels)} events found")
             return None
         
         # Find last event before now and next event after now
@@ -70,6 +72,7 @@ class TideCalculator:
         
         if last_event is None or next_event is None:
             # Couldn't find bounding events
+            logging.debug(f"[TideCalculator] Could not find bounding events (last={last_event}, next={next_event})")
             return None
         
         # Determine direction based on next event

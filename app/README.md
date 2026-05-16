@@ -649,7 +649,6 @@ app/
 ├── tide_update_scheduler.py    # Periodic data updates
 ├── tide_visualizer.py          # Main visualization loop
 ├── light_controller.py         # LED strip control
-├── gpio_manager.py             # GPIO cleanup
 ├── led_mock_visualizer.py      # Console mock for LEDs
 │
 ├── ble/                        # BLE subsystem

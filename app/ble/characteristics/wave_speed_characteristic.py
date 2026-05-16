@@ -2,7 +2,7 @@
 Wave Speed Characteristic for Tide Light.
 
 Handles wave animation speed as a float string (0.1-5.0 seconds).
-UUID: 12345678-1234-5678-1234-56789abcdef4
+UUID: ec04 (expands to 0000ec04-0000-1000-8000-00805f9b34fb)
 Properties: Read, Write
 """
 
@@ -27,7 +27,7 @@ class WaveSpeedCharacteristic(Characteristic):
             config_handler: BLEConfigHandler instance for validation/updates
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdef4',
+            'uuid': 'ec04',
             'properties': ['read', 'write'],
             'value': None
         })

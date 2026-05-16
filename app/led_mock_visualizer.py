@@ -22,6 +22,7 @@ Wave Animation: The 3-LED cascading wave shows as "cCY" (on blue) or "mMK" (on p
 with colors rotating through positions as the wave moves.
 """
 
+import logging
 from typing import Optional
 from rpi_ws281x import PixelStrip
 
@@ -74,7 +75,7 @@ class PixelStripVisualizer:
     def begin(self):
         """Initialize library, must be called once before other functions."""
         self._strip.begin()
-        print("[LED MOCK] Visualizer initialized")
+        logging.info("[LED MOCK] Visualizer initialized")
     
     def show(self):
         """Update the display and print visualization if state changed."""
@@ -86,7 +87,7 @@ class PixelStripVisualizer:
         
         # Only print if state changed
         if current_state != self._previous_state:
-            print(f"[LED] {current_state}")
+            logging.info(f"[LED] {current_state}")
             self._previous_state = current_state
     
     def setPixelColor(self, n, color):

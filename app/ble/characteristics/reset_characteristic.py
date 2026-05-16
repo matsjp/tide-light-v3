@@ -3,7 +3,7 @@ Reset Characteristic for Tide Light.
 
 Handles factory reset functionality as a write-only characteristic.
 Writing 0x01 triggers a factory reset, restoring default configuration.
-UUID: 12345678-1234-5678-1234-56789abcdf00
+UUID: ec10 (expands to 0000ec10-0000-1000-8000-00805f9b34fb)
 Properties: Write only
 """
 
@@ -28,7 +28,7 @@ class ResetCharacteristic(Characteristic):
             config_manager: ConfigManager instance for reset operation
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdf00',
+            'uuid': 'ec10',
             'properties': ['write'],
             'value': None
         })

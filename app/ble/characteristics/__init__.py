@@ -8,9 +8,7 @@ from .pattern_characteristic import PatternCharacteristic
 from .wave_speed_characteristic import WaveSpeedCharacteristic
 from .led_count_characteristic import LEDCountCharacteristic
 from .led_invert_characteristic import LEDInvertCharacteristic
-from .full_config_characteristic import FullConfigCharacteristic
 from .status_characteristic import StatusCharacteristic
-from .error_characteristic import ErrorCharacteristic
 
 __all__ = [
     'LocationCharacteristic',
@@ -19,7 +17,5 @@ __all__ = [
     'WaveSpeedCharacteristic',
     'LEDCountCharacteristic',
     'LEDInvertCharacteristic',
-    'FullConfigCharacteristic',
     'StatusCharacteristic',
-    'ErrorCharacteristic',
 ]

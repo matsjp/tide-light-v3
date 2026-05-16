@@ -12,9 +12,7 @@ from ble.characteristics import (
     WaveSpeedCharacteristic,
     LEDCountCharacteristic,
     LEDInvertCharacteristic,
-    FullConfigCharacteristic,
     StatusCharacteristic,
-    ErrorCharacteristic,
 )
 from ble.characteristics.wifi_networks_characteristic import WiFiNetworksCharacteristic
 from ble.characteristics.wifi_ssid_characteristic import WiFiSsidCharacteristic
@@ -67,9 +65,7 @@ class TideLightService(BlenoPrimaryService):
             WaveSpeedCharacteristic(config_handler),
             LEDCountCharacteristic(config_handler),
             LEDInvertCharacteristic(config_handler),
-            FullConfigCharacteristic(config_handler),
             StatusCharacteristic(status_provider),
-            ErrorCharacteristic(config_handler),
             LdrActiveCharacteristic(config_handler),
         ]
         

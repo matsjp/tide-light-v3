@@ -21,11 +21,11 @@ def on_config_changed(config, scheduler, visualizer, ldr):
     invert = config["led_strip"]["invert"]
     pattern = config["color"]["pattern"]
 
-    print("Configuration updated:")
-    print(f"  Tide location: ({lat}, {lon})")
-    print(f"  LED brightness: {brightness}")
-    print(f"  LED invert: {invert}")
-    print(f"  LED pattern: {pattern}")
+    logging.info("Configuration updated:")
+    logging.info(f"  Tide location: ({lat}, {lon})")
+    logging.info(f"  LED brightness: {brightness}")
+    logging.info(f"  LED invert: {invert}")
+    logging.info(f"  LED pattern: {pattern}")
 
     scheduler.on_config_updated(config)
     visualizer.on_config_updated(config)
@@ -44,10 +44,7 @@ def main():
     logging.getLogger('ble').setLevel(logging.DEBUG)
     logging.getLogger('app.ble').setLevel(logging.DEBUG)
     
-    # Option 2: To enable DEBUG for ALL modules, uncomment this line instead:
-    logging.getLogger().setLevel(logging.DEBUG)
-    
-    print("Starting Tide Light...")
+    logging.info("Starting Tide Light...")
 
     config_manager = ConfigManager(CONFIG_PATH)
     config = config_manager.get_config()
@@ -63,13 +60,13 @@ def main():
     if cached_location is not None:
         cached_lat, cached_lon = cached_location
         if cached_lat != config_lat or cached_lon != config_lon:
-            print("[Startup] Location changed while offline:")
-            print(f"  Cached location: ({cached_lat}, {cached_lon})")
-            print(f"  Config location: ({config_lat}, {config_lon})")
-            print("[Startup] Clearing old tide data...")
+            logging.info("[Startup] Location changed while offline:")
+            logging.info(f"  Cached location: ({cached_lat}, {cached_lon})")
+            logging.info(f"  Config location: ({config_lat}, {config_lon})")
+            logging.info("[Startup] Clearing old tide data...")
             cache.invalidate_all()
     else:
-        print("[Startup] No cached location found (first run or cache cleared)")
+        logging.info("[Startup] No cached location found (first run or cache cleared)")
 
     scheduler = TideUpdateScheduler(
         cache_manager=cache,
@@ -81,14 +78,14 @@ def main():
     scheduler.start()
 
     # Initialize LED light system
-    print("Initializing LED strip...")
+    logging.info("Initializing LED strip...")
     light = LightController(config)
     light.begin()
     
-    print("Initializing tide calculator...")
+    logging.info("Initializing tide calculator...")
     calculator = TideCalculator(cache)
     
-    print("Starting tide visualizer...")
+    logging.info("Starting tide visualizer...")
     visualizer = TideVisualizer(
         light_controller=light,
         tide_calculator=calculator,
@@ -102,10 +99,10 @@ def main():
     visualizer.start()
     
     # Initialize LDR controller
-    print("Initializing LDR controller...")
+    logging.info("Initializing LDR controller...")
     def on_ldr_brightness_change(brightness: int):
         """Callback when LDR wants to change brightness."""
-        print(f"[LDR] Auto-adjusting brightness to {brightness}")
+        logging.info(f"[LDR] Auto-adjusting brightness to {brightness}")
         visualizer.set_brightness(brightness)
     
     ldr = LdrController(config=config, on_brightness_change=on_ldr_brightness_change)
@@ -115,14 +112,14 @@ def main():
     config_manager.register_listener(lambda cfg: on_config_changed(cfg, scheduler, visualizer, ldr))
 
     # Initial fetch (will notify visualizer)
-    scheduler._run_once()
+    scheduler.run_once()
 
     # Initialize RTC manager
-    print("Initializing RTC manager...")
+    logging.info("Initializing RTC manager...")
     rtc_manager = RTCManager()
 
     # Initialize BLE interface
-    print("Initializing BLE interface...")
+    logging.info("Initializing BLE interface...")
     ble_manager = BLEManager(
         config_manager=config_manager,
         tide_calculator=calculator,
@@ -132,21 +129,25 @@ def main():
     )
     ble_manager.start()
 
-    print("System initialized. Running main loop.")
-    print(f"  Current tide location: ({scheduler.current_lat}, {scheduler.current_lon})")
-    print(f"  LED pattern: {config['color']['pattern']}")
-    print(f"  LED brightness: {config['led_strip']['brightness']}")
+    logging.info("System initialized. Running main loop.")
+    logging.info(f"  Current tide location: ({scheduler.current_lat}, {scheduler.current_lon})")
+    logging.info(f"  LED pattern: {config['color']['pattern']}")
+    logging.info(f"  LED brightness: {config['led_strip']['brightness']}")
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("Shutting down Tide Light...")
+        logging.info("Shutting down Tide Light...")
+    finally:
+        # Clean shutdown of all components
         ldr.stop()
         ble_manager.stop()
         visualizer.stop()
         scheduler.stop()
         light.cleanup()
+        cache.close()  # Close database connection
+        logging.info("Shutdown complete.")
 
 if __name__ == "__main__":
     main()

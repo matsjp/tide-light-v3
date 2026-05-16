@@ -187,14 +187,19 @@ export class WiFiManager {
     }
 
     this._isScanning = true;
-    this._networksList.innerHTML = '<div class="loading">Scanning for networks...</div>';
+    this._networksList.innerHTML = '<div class="loading">Scanning for networks... (may take up to 60 seconds)</div>';
     this._showNetworksView();
 
     try {
+      console.log('[WiFi] Calling readWifiNetworks()...');
       const networks = await this._bleManager.readWifiNetworks();
+      console.log('[WiFi] Got networks:', networks);
       this._displayNetworks(networks);
     } catch (error) {
       console.error('[WiFi] Scan error:', error);
+      console.error('[WiFi] Error name:', error.name);
+      console.error('[WiFi] Error message:', error.message);
+      console.error('[WiFi] Error stack:', error.stack);
       this._networksList.innerHTML = '<div class="error">Failed to scan networks. Please try again.</div>';
     } finally {
       this._isScanning = false;

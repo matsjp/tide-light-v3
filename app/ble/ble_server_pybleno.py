@@ -10,7 +10,7 @@ Only imported when bluetooth.use_fake_library = false.
 
 import logging
 from typing import Optional
-from pybleno import Bleno
+from pybleno import Bleno, BlenoPrimaryService
 from ble.services.tide_light_service import TideLightService
 from config_manager import ConfigManager
 from ble.ble_config_handler import BLEConfigHandler
@@ -49,18 +49,71 @@ class BLEServerPybleno:
         self._wifi_handler = wifi_handler
         self._rtc_manager = rtc_manager
         
+        # Get device name and UUID from config FIRST
+        config = self._config_manager.get_config()
+        self._device_name = config.get('bluetooth', {}).get('device_name', 'Tide Light')
+        self._service_uuid = 'ec00'  # SHORT UUID (works with multiple characteristics!)
+        
         # Initialize Bleno
         self._bleno = Bleno()
         
-        # Create service with optional WiFi and RTC handlers
-        self._service = TideLightService(config_handler, status_provider, config_manager, wifi_handler, rtc_manager)
+        # Build characteristics list using SHORT UUIDs
+        from ble.characteristics import (
+            LocationCharacteristic,
+            BrightnessCharacteristic,
+            PatternCharacteristic,
+            WaveSpeedCharacteristic,
+            LEDCountCharacteristic,
+            LEDInvertCharacteristic,
+            StatusCharacteristic,
+        )
+        from ble.characteristics.wifi_networks_characteristic import WiFiNetworksCharacteristic
+        from ble.characteristics.wifi_ssid_characteristic import WiFiSsidCharacteristic
+        from ble.characteristics.wifi_password_characteristic import WiFiPasswordCharacteristic
+        from ble.characteristics.wifi_status_characteristic import WiFiStatusCharacteristic
+        from ble.characteristics.ldr_active_characteristic import LdrActiveCharacteristic
+        from ble.characteristics.system_time_characteristic import SystemTimeCharacteristic
+        from ble.characteristics.reset_characteristic import ResetCharacteristic
         
-        # Get device name from config
-        config = self._config_manager.get_config()
-        self._device_name = config.get('bluetooth', {}).get('device_name', 'Tide Light')
+        # TESTING: Enable location, brightness, pattern, wave speed, LED count, LED invert, LDR active, status, WiFi
+        characteristics = [
+            LocationCharacteristic(self._handler),          # ec01
+            BrightnessCharacteristic(self._handler),        # ec02
+            PatternCharacteristic(self._handler),           # ec03
+            WaveSpeedCharacteristic(self._handler),         # ec04
+            LEDCountCharacteristic(self._handler),          # ec05
+            LEDInvertCharacteristic(self._handler),         # ec06
+            StatusCharacteristic(self._status),             # ec08
+            LdrActiveCharacteristic(self._handler),         # ec0e
+        ]
         
-        # Service UUID for advertising
-        self._service_uuid = '12345678-1234-5678-1234-56789abcdef0'
+        # Enable RTC characteristic
+        if self._rtc_manager:
+            characteristics.append(SystemTimeCharacteristic(self._rtc_manager))  # ec0f
+        
+        # Enable Reset characteristic
+        if self._config_manager:
+            characteristics.append(ResetCharacteristic(self._config_manager))    # ec10
+        
+        # Enable WiFi characteristics
+        if self._wifi_handler:
+            wifi_status_char = WiFiStatusCharacteristic(self._wifi_handler)     # ec0d
+            self._wifi_handler.set_status_characteristic(wifi_status_char)
+            
+            characteristics.extend([
+                WiFiNetworksCharacteristic(self._wifi_handler),  # ec0a
+                WiFiSsidCharacteristic(self._wifi_handler),      # ec0b
+                WiFiPasswordCharacteristic(self._wifi_handler),  # ec0c
+                wifi_status_char,                                 # ec0d
+            ])
+        
+        # Create service
+        self._service = BlenoPrimaryService({
+            'uuid': self._service_uuid,
+            'characteristics': characteristics
+        })
+        
+        print(f"[BLE Server Pybleno] Created service with {len(characteristics)} characteristics (SHORT UUIDs)")
         
         # Register event handlers
         self._bleno.on('stateChange', self._on_state_change)
@@ -93,14 +146,9 @@ class BLEServerPybleno:
         
         if state == 'poweredOn':
             # Start advertising when Bluetooth is ready
-            def on_start_advertising(err):
-                if err:
-                    logging.error(f"[BLE Server Pybleno] Advertising error: {err}")
-            
             self._bleno.startAdvertising(
                 self._device_name,
-                [self._service_uuid],
-                on_start_advertising
+                [self._service_uuid]
             )
         else:
             # Stop advertising if Bluetooth is not ready
@@ -116,18 +164,12 @@ class BLEServerPybleno:
         if error:
             logging.error(f"[BLE Server Pybleno] Failed to start advertising: {error}")
         else:
-            print(f"[BLE Server Pybleno] Advertising as '{self._device_name}'")
+            print(f"[BLE Server Pybleno] Advertising started successfully")
+            print(f"[BLE Server Pybleno] Device name: '{self._device_name}'")
             print(f"[BLE Server Pybleno] Service UUID: {self._service_uuid}")
             
-            # Log characteristics in the service
-            if hasattr(self._service, 'characteristics'):
-                char_count = len(self._service.characteristics)
-                print(f"[BLE Server Pybleno] Registering service with {char_count} characteristics:")
-                for char in self._service.characteristics:
-                    char_uuid = char.get('uuid', 'unknown')
-                    char_props = char.get('properties', [])
-                    print(f"  - {char_uuid}: {char_props}")
-            
-            # Register service
+            # Register service AFTER advertising (like V2 does)
+            print(f"[BLE Server Pybleno] Registering service (created in __init__)...")
             self._bleno.setServices([self._service])
-            print("[BLE Server Pybleno] Service registered successfully")
+            
+            print("[BLE Server Pybleno] Ready for connections")

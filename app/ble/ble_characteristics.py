@@ -23,9 +23,7 @@ CHAR_PATTERN_UUID = "12345678-1234-5678-1234-56789abcdef3"
 CHAR_WAVE_SPEED_UUID = "12345678-1234-5678-1234-56789abcdef4"
 CHAR_LED_COUNT_UUID = "12345678-1234-5678-1234-56789abcdef5"
 CHAR_LED_INVERT_UUID = "12345678-1234-5678-1234-56789abcdef6"
-CHAR_FULL_CONFIG_UUID = "12345678-1234-5678-1234-56789abcdef7"
 CHAR_STATUS_UUID = "12345678-1234-5678-1234-56789abcdef8"
-CHAR_ERROR_UUID = "12345678-1234-5678-1234-56789abcdef9"
 
 # WiFi characteristic UUIDs
 CHAR_WIFI_NETWORKS_UUID = "12345678-1234-5678-1234-56789abcdefa"
@@ -117,25 +115,12 @@ CHARACTERISTICS = {
         "values": [0, 1],
         "description": "Invert LED strip orientation"
     },
-    "full_config": {
-        "uuid": CHAR_FULL_CONFIG_UUID,
-        "name": "Full Config JSON",
-        "format": "json_string",
-        "description": "Complete configuration as JSON"
-    },
     "status": {
         "uuid": CHAR_STATUS_UUID,
         "name": "Status",
         "format": "json_string",
         "readonly": True,
         "description": "Current tide state and system status"
-    },
-    "error": {
-        "uuid": CHAR_ERROR_UUID,
-        "name": "Error Code",
-        "format": "uint8",
-        "readonly": True,
-        "description": "Last error code (0 = success)"
     }
 }
 

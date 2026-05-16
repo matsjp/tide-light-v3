@@ -2,7 +2,7 @@
 Pattern Characteristic for Tide Light.
 
 Handles LED pattern as a string ("none" or "wave").
-UUID: 12345678-1234-5678-1234-56789abcdef3
+UUID: ec03 (expands to 0000ec03-0000-1000-8000-00805f9b34fb)
 Properties: Read, Write
 """
 
@@ -26,7 +26,7 @@ class PatternCharacteristic(Characteristic):
             config_handler: BLEConfigHandler instance for validation/updates
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdef3',
+            'uuid': 'ec03',
             'properties': ['read', 'write'],
             'value': None
         })
@@ -37,19 +37,16 @@ class PatternCharacteristic(Characteristic):
         Handle read request for pattern.
         
         Args:
-            offset: Byte offset (must be 0)
+            offset: Byte offset
             callback: Callback function(result_code, data)
         """
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
-        else:
-            try:
-                pattern = self._handler.get_pattern()
-                data = string_to_bytes(pattern)
-                callback(Characteristic.RESULT_SUCCESS, data)
-            except Exception as e:
-                logging.exception(f"Pattern read error: {e}")
-                callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
+        try:
+            pattern = self._handler.get_pattern()
+            data = string_to_bytes(pattern)
+            callback(Characteristic.RESULT_SUCCESS, data[offset:])
+        except Exception as e:
+            logging.exception(f"Pattern read error: {e}")
+            callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
     
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         """

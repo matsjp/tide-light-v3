@@ -1,30 +1,31 @@
 /**
  * BLE Service and Characteristic UUIDs for Tide Light
- * Mirrors Python ble_characteristics.py
+ * Uses SHORT UUIDs in NUMERIC HEX format (e.g., 0xec00)
+ * Web Bluetooth API automatically expands these to full 128-bit UUIDs
  */
 
-// Service UUID
-export const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
+// Service UUID - NUMERIC HEX format (matching working v2 project)
+export const SERVICE_UUID = 0xec00;
 export const SERVICE_NAME = "Tide Light Config";
 
-// Characteristic UUIDs
+// Characteristic UUIDs - NUMERIC HEX format
+// These will be automatically expanded by Web Bluetooth API
+// TESTING: Only enable characteristics that are active on Pi
 export const CHAR_UUIDS = {
-  LOCATION: "12345678-1234-5678-1234-56789abcdef1",
-  BRIGHTNESS: "12345678-1234-5678-1234-56789abcdef2",
-  PATTERN: "12345678-1234-5678-1234-56789abcdef3",
-  WAVE_SPEED: "12345678-1234-5678-1234-56789abcdef4",
-  LED_COUNT: "12345678-1234-5678-1234-56789abcdef5",
-  LED_INVERT: "12345678-1234-5678-1234-56789abcdef6",
-  FULL_CONFIG: "12345678-1234-5678-1234-56789abcdef7",
-  STATUS: "12345678-1234-5678-1234-56789abcdef8",
-  ERROR: "12345678-1234-5678-1234-56789abcdef9",
-  WIFI_NETWORKS: "12345678-1234-5678-1234-56789abcdefa",
-  WIFI_SSID: "12345678-1234-5678-1234-56789abcdefb",
-  WIFI_PASSWORD: "12345678-1234-5678-1234-56789abcdefc",
-  WIFI_STATUS: "12345678-1234-5678-1234-56789abcdefd",
-  LDR_ACTIVE: "12345678-1234-5678-1234-56789abcdefe",
-  SYSTEM_TIME: "12345678-1234-5678-1234-56789abcdeff",
-  RESET: "12345678-1234-5678-1234-56789abcdf00"
+  LOCATION: 0xec01,
+  BRIGHTNESS: 0xec02,
+  PATTERN: 0xec03,
+  WAVE_SPEED: 0xec04,
+  LED_COUNT: 0xec05,
+  LED_INVERT: 0xec06,
+  STATUS: 0xec08,
+  WIFI_NETWORKS: 0xec0a,
+  WIFI_SSID: 0xec0b,
+  WIFI_PASSWORD: 0xec0c,
+  WIFI_STATUS: 0xec0d,
+  LDR_ACTIVE: 0xec0e,
+  SYSTEM_TIME: 0xec0f,
+  RESET: 0xec10
 };
 
 // Error Codes
@@ -102,11 +103,6 @@ export const CHAR_METADATA = {
   STATUS: {
     name: "Status",
     format: "json_string",
-    readonly: true
-  },
-  ERROR: {
-    name: "Error Code",
-    format: "uint8",
     readonly: true
   },
   WIFI_NETWORKS: {

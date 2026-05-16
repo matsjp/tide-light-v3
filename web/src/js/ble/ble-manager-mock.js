@@ -269,7 +269,14 @@ export class BLEManagerMock {
    */
   async syncTimeNow() {
     const now = new Date();
-    const isoString = now.toISOString().split('.')[0];
+    // Format as ISO 8601 in LOCAL time (not UTC)
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const isoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     await this.writeSystemTime(isoString);
   }
 
@@ -292,48 +299,6 @@ export class BLEManagerMock {
     localStorage.removeItem('tide-light-ldr-enabled');
     localStorage.removeItem('tide-light-system-time');
     console.log('[BLE Mock] Factory reset completed');
-  }
-
-  /**
-   * Read full config JSON
-   */
-  async readFullConfig() {
-    await this._delay(200);
-    const config = {
-      location: this.config.location,
-      led_strip: {
-        count: this.config.ledCount,
-        brightness: this.config.brightness,
-        invert: this.config.ledInvert
-      },
-      color: {
-        pattern: this.config.pattern,
-        wave_speed: this.config.waveSpeed
-      }
-    };
-    console.log('[BLE Mock] Read full config:', config);
-    return config;
-  }
-
-  /**
-   * Write full config JSON
-   */
-  async writeFullConfig(config) {
-    await this._delay(250);
-    if (config.location) {
-      this.config.location = config.location;
-    }
-    if (config.led_strip) {
-      this.config.brightness = config.led_strip.brightness;
-      this.config.ledCount = config.led_strip.count;
-      this.config.ledInvert = config.led_strip.invert;
-    }
-    if (config.color) {
-      this.config.pattern = config.color.pattern;
-      this.config.waveSpeed = config.color.wave_speed;
-    }
-    this._saveConfig();
-    console.log('[BLE Mock] Write full config');
   }
 
   /**
@@ -375,22 +340,6 @@ export class BLEManagerMock {
   }
 
   /**
-   * Read error code
-   */
-  async readErrorCode() {
-    await this._delay(100);
-    console.log('[BLE Mock] Read error code:', this.config.errorCode);
-    return this.config.errorCode;
-  }
-
-  /**
-   * Get error message for error code
-   */
-  getErrorMessage(errorCode) {
-    return ERROR_MESSAGES[errorCode] || `Unknown error (${errorCode})`;
-  }
-
-  /**
    * Read all configuration values at once
    */
   async readAll() {
@@ -404,9 +353,7 @@ export class BLEManagerMock {
       waveSpeed: this.config.waveSpeed,
       ledCount: this.config.ledCount,
       ledInvert: this.config.ledInvert,
-      ldrActive: this.config.ldrActive,
-      errorCode: this.config.errorCode,
-      errorMessage: this.getErrorMessage(this.config.errorCode)
+      ldrActive: this.config.ldrActive
     };
   }
 

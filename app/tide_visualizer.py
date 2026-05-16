@@ -1,5 +1,6 @@
 import threading
 import time
+import logging
 from typing import Dict, Any, List, Tuple
 
 from light_controller import LightController
@@ -58,8 +59,8 @@ class TideVisualizer:
         
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         
-        print(f"[TideVisualizer] Initialized with {self._led_count} LEDs")
-        print(f"[TideVisualizer] Pattern: {self._pattern}, Speed: {self._wave_speed}s")
+        logging.info(f"[TideVisualizer] Initialized with {self._led_count} LEDs")
+        logging.info(f"[TideVisualizer] Pattern: {self._pattern}, Speed: {self._wave_speed}s")
     
     # -----------------------------
     # Public API
@@ -68,14 +69,14 @@ class TideVisualizer:
     def start(self) -> None:
         """Start visualization thread."""
         self._thread.start()
-        print("[TideVisualizer] Started")
+        logging.info("[TideVisualizer] Started")
     
     def stop(self) -> None:
         """Stop visualization thread and wait for cleanup."""
-        print("[TideVisualizer] Stopping...")
+        logging.info("[TideVisualizer] Stopping...")
         self._stop_event.set()
         self._thread.join()
-        print("[TideVisualizer] Stopped")
+        logging.info("[TideVisualizer] Stopped")
     
     def on_config_updated(self, new_config: Dict[str, Any]) -> None:
         """
@@ -99,14 +100,14 @@ class TideVisualizer:
             self._pattern = new_config["color"]["pattern"]
             self._wave_speed = new_config["color"]["wave_speed"]
         
-        print(f"[TideVisualizer] Config updated: pattern={self._pattern}, brightness={new_brightness}")
+        logging.info(f"[TideVisualizer] Config updated: pattern={self._pattern}, brightness={new_brightness}")
     
     def on_tide_data_updated(self) -> None:
         """
         Called by TideUpdateScheduler when new tide data is fetched.
         Visualizer can reset animation or preload state.
         """
-        print("[TideVisualizer] Tide data updated, refreshing visualization")
+        logging.info("[TideVisualizer] Tide data updated, refreshing visualization")
         # Main loop will automatically pick up new data on next iteration
     
     def set_brightness(self, brightness: int) -> None:
@@ -174,7 +175,7 @@ class TideVisualizer:
             
             # Detect direction change
             if last_direction is not None and last_direction != tide_state.direction:
-                print(f"[TideVisualizer] Tide direction changed: {last_direction} → {tide_state.direction}")
+                logging.info(f"[TideVisualizer] Tide direction changed: {last_direction} → {tide_state.direction}")
             last_direction = tide_state.direction
             
             # Set direction indicators
@@ -238,14 +239,23 @@ class TideVisualizer:
         # Calculate how many LEDs should be BLUE (excluding always-blue LED)
         num_blue = int(progress * (num_middle - 1))
         
-        # Fill from bottom up (last middle LED is reference point)
-        # Array index 0 is closest to top, index (num_middle-1) is closest to bottom
+        # Fill from bottom up (respecting invert flag)
+        # When invert=False: array index 0 = top, index (num_middle-1) = bottom
+        # When invert=True: array index 0 = bottom, index (num_middle-1) = top
         for i in range(num_blue):
-            colors[num_middle - 2 - i] = COLOR_BLUE
+            if self._invert:
+                # Inverted: fill from low to high indices (bottom to top physically)
+                colors[i] = COLOR_BLUE
+            else:
+                # Normal: fill from high to low indices (bottom to top physically)
+                colors[num_middle - 2 - i] = COLOR_BLUE
         
         # Rest are PURPLE
         for i in range(num_blue, num_middle - 1):
-            colors[num_middle - 2 - i] = COLOR_PURPLE
+            if self._invert:
+                colors[i] = COLOR_PURPLE
+            else:
+                colors[num_middle - 2 - i] = COLOR_PURPLE
         
         return colors
     
@@ -288,14 +298,23 @@ class TideVisualizer:
         wave_offsets = [0, 1, 2]
         
         for offset in wave_offsets:
-            if direction == "rising":
-                # Wave moves UP (toward top, LOWER indices)
-                # Start from bottom (high indices) and move toward top (low indices)
-                pos = (num_middle - 2 - wave_position) - offset
-            else:  # falling
-                # Wave moves DOWN (toward bottom, HIGHER indices)
-                # Start from top (low indices) and move toward bottom (high indices)
-                pos = wave_position + offset
+            # Calculate wave position based on invert flag and tide direction
+            if self._invert:
+                # When inverted: higher array indices = physical top, lower = physical bottom
+                if direction == "rising":
+                    # Wave moves UP physically (toward higher indices)
+                    pos = wave_position + offset
+                else:  # falling
+                    # Wave moves DOWN physically (toward lower indices)
+                    pos = (num_middle - 2 - wave_position) - offset
+            else:
+                # When normal: lower array indices = physical top, higher = physical bottom
+                if direction == "rising":
+                    # Wave moves UP physically (toward lower indices)
+                    pos = (num_middle - 2 - wave_position) - offset
+                else:  # falling
+                    # Wave moves DOWN physically (toward higher indices)
+                    pos = wave_position + offset
             
             # Include all middle LEDs (including always-blue LED)
             if 0 <= pos < num_middle:

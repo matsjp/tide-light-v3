@@ -1,0 +1,19 @@
+[Unit]
+Description=Tide Light Auto-Updater (one-shot)
+Documentation=https://github.com/matsjp/tide-light-v3
+After=network-online.target
+Wants=network-online.target
+# Require actual internet connectivity (not just network interface up)
+Requisite=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/pi/tide-light-v3
+ExecStart=/home/pi/tide-light-v3/app/scripts/auto_update.sh
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

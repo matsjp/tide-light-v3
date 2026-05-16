@@ -105,6 +105,7 @@ class TideLightApp {
     const debugContent = document.getElementById('debug-content');
     const debugClear = document.getElementById('debug-clear');
     const debugShowLogs = document.getElementById('debug-show-logs');
+    const debugCopyLogs = document.getElementById('debug-copy-logs');
     const floatingDebugBtn = document.getElementById('floating-debug-btn');
 
     // Toggle debug panel expand/collapse
@@ -122,6 +123,11 @@ class TideLightApp {
     // Show logs button
     debugShowLogs.addEventListener('click', () => {
       this.showConsoleLogs();
+    });
+
+    // Copy logs button
+    debugCopyLogs.addEventListener('click', () => {
+      this.copyLogsToClipboard();
     });
 
     // Floating debug button
@@ -181,9 +187,13 @@ class TideLightApp {
       return;
     }
 
-    const logsText = this.logBuffer.map(entry => 
-      `[${entry.time}] ${entry.level.toUpperCase()}: ${entry.message}`
-    ).join('\n\n');
+    // Simple format: just the message without timestamp and [BLE] prefix
+    const logsText = this.logBuffer.map(entry => {
+      let msg = entry.message;
+      // Remove [BLE] prefix if present
+      msg = msg.replace(/^\[BLE\]\s*/, '');
+      return msg;
+    }).join('\n');
     
     const debugPanel = document.getElementById('debug-panel');
     const debugMessage = document.getElementById('debug-message');
@@ -199,6 +209,43 @@ class TideLightApp {
     debugContent.classList.remove('collapsed');
     debugToggle.classList.remove('collapsed');
     debugToggle.textContent = '▼';
+  }
+
+  async copyLogsToClipboard() {
+    if (!this.logBuffer || this.logBuffer.length === 0) {
+      alert('No logs to copy');
+      return;
+    }
+
+    // Simple format: just the message without timestamp and [BLE] prefix
+    const logsText = this.logBuffer.map(entry => {
+      let msg = entry.message;
+      // Remove [BLE] prefix if present
+      msg = msg.replace(/^\[BLE\]\s*/, '');
+      return msg;
+    }).join('\n');
+
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(logsText);
+        alert('✓ Logs copied to clipboard!');
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = logsText;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('✓ Logs copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Failed to copy logs:', error);
+      alert('✗ Failed to copy logs. Please try again.');
+    }
   }
 
   showDebugError(error) {
@@ -262,6 +309,16 @@ class TideLightApp {
       statusDot.className = 'status-dot connected';
       statusText.textContent = 'Connected';
 
+      // AUTO-SYNC TIME: Immediately sync time if RTC available (only in real mode, not demo)
+      if (!this.demoMode && this.ble.isRtcAvailable && this.ble.isRtcAvailable()) {
+        try {
+          await this.ble.syncTimeNow();
+        } catch (syncError) {
+          // Silent failure - don't block connection or show error to user
+          // Time sync is best-effort, connection is more important
+        }
+      }
+
       // FIRST: Update UI immediately (hide connect button, show config sections)
       this.hideSection('connection-section');
       this.showSection('map-section');
@@ -279,17 +336,39 @@ class TideLightApp {
         await this.loadConfiguration();
 
         // Show WiFi section if available
+        console.log('[App] Checking if WiFi is available...');
+        console.log('[App] ble.isWifiAvailable function exists:', typeof this.ble.isWifiAvailable);
         if (this.ble.isWifiAvailable && this.ble.isWifiAvailable()) {
+          console.log('[App] WiFi is available! Showing WiFi section...');
           this.showSection('wifi-section');
           try {
+            console.log('[App] Initializing WiFi manager...');
             await this.wifi?.init();
+            console.log('[App] WiFi manager initialized successfully');
           } catch (wifiError) {
             console.warn('[App] WiFi init failed:', wifiError);
             this.showDebugError(`WiFi initialization failed: ${wifiError.message}`);
           }
+        } else {
+          console.log('[App] WiFi NOT available');
+        }
+
+        // Read initial status and start polling (optional - don't fail if unavailable)
+        // Do this BEFORE starting RTC UI to avoid parallel BLE operations
+        try {
+          const initialStatus = await this.ble.readStatus();
+          this.updateStatus(initialStatus);
+          
+          // Poll status every 30 seconds
+          this.startStatusPolling();
+          
+        } catch (statusError) {
+          console.warn('[App] Status characteristic not available:', statusError.message);
+          // Don't show error for missing status - it's optional
         }
 
         // Show System section if RTC available
+        // Initialize AFTER reading status to avoid parallel BLE reads
         if (this.ble.isRtcAvailable && this.ble.isRtcAvailable()) {
           this.showSection('system-section');
           try {
@@ -298,25 +377,6 @@ class TideLightApp {
             console.warn('[App] RTC init failed:', rtcError);
             this.showDebugError(`RTC initialization failed: ${rtcError.message}`);
           }
-        }
-
-        // Read initial status and start polling (optional - don't fail if unavailable)
-        try {
-          console.log('[App] Reading Status characteristic...');
-          const initialStatus = await this.ble.readStatus();
-          console.log('[App] Status read successfully:', initialStatus);
-          this.updateStatus(initialStatus);
-          
-          // Poll status every 30 seconds
-          this.startStatusPolling();
-          
-        } catch (statusError) {
-          console.error('[App] Status updates not available:', statusError.message, statusError);
-          console.warn('[App] Tide state will not be displayed. This might be because:');
-          console.warn('[App]   - Status characteristic is missing from device');
-          console.warn('[App]   - Device does not have tide data available');
-          console.warn('[App]   - BLE read failed (check Pi logs)');
-          // Don't show error for missing status - it's optional
         }
 
       } catch (error) {
@@ -484,22 +544,13 @@ class TideLightApp {
       const ledCount = parseInt(document.getElementById('led-count-input').value);
       const ledInvert = document.getElementById('led-invert-input').checked;
 
-      // Write all values
-      await Promise.all([
-        this.ble.writeLocation(lat, lon),
-        this.ble.writeBrightness(brightness),
-        this.ble.writePattern(pattern),
-        this.ble.writeWaveSpeed(waveSpeed),
-        this.ble.writeLedCount(ledCount),
-        this.ble.writeLedInvert(ledInvert)
-      ]);
-
-      // Check for errors
-      const errorCode = await this.ble.readErrorCode();
-      if (errorCode !== 0) {
-        const errorMsg = this.ble.getErrorMessage(errorCode);
-        throw new Error(errorMsg);
-      }
+      // Write all values SEQUENTIALLY (BLE doesn't support parallel writes)
+      await this.ble.writeLocation(lat, lon);
+      await this.ble.writeBrightness(brightness);
+      await this.ble.writePattern(pattern);
+      await this.ble.writeWaveSpeed(waveSpeed);
+      await this.ble.writeLedCount(ledCount);
+      await this.ble.writeLedInvert(ledInvert);
 
       showSuccess('Configuration updated successfully');
       console.log('[App] Configuration applied');
@@ -553,6 +604,9 @@ class TideLightApp {
 
   async initializeRtcUI() {
     // Start updating time displays every second
+    // Wait 500ms before first read to avoid parallel BLE operations during connection
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     this.updateTimeDisplays();
     this.timeUpdateInterval = setInterval(() => {
       this.updateTimeDisplays();

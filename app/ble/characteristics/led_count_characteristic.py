@@ -2,7 +2,7 @@
 LED Count Characteristic for Tide Light.
 
 Handles number of LEDs as a uint8 value (3-255).
-UUID: 12345678-1234-5678-1234-56789abcdef5
+UUID: ec05 (expands to 0000ec05-0000-1000-8000-00805f9b34fb)
 Properties: Read, Write
 """
 
@@ -26,7 +26,7 @@ class LEDCountCharacteristic(Characteristic):
             config_handler: BLEConfigHandler instance for validation/updates
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdef5',
+            'uuid': 'ec05',
             'properties': ['read', 'write'],
             'value': None
         })

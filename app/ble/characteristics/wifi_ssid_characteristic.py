@@ -2,7 +2,7 @@
 WiFi SSID Characteristic for Tide Light.
 
 Allows writing the target WiFi network SSID to connect to.
-UUID: 12345678-1234-5678-1234-56789abcdefb
+UUID: ec0b (expands to 0000ec0b-0000-1000-8000-00805f9b34fb)
 Properties: Write
 """
 
@@ -28,7 +28,7 @@ class WiFiSsidCharacteristic(Characteristic):
             wifi_handler: WiFiHandler instance with set_target_ssid method
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdefb',
+            'uuid': 'ec0b',
             'properties': ['write'],
             'value': None
         })

@@ -2,7 +2,7 @@
 LED Invert Characteristic for Tide Light.
 
 Handles LED inversion flag as a boolean (uint8: 0 or 1).
-UUID: 12345678-1234-5678-1234-56789abcdef6
+UUID: ec06 (expands to 0000ec06-0000-1000-8000-00805f9b34fb)
 Properties: Read, Write
 """
 
@@ -26,7 +26,7 @@ class LEDInvertCharacteristic(Characteristic):
             config_handler: BLEConfigHandler instance for validation/updates
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdef6',
+            'uuid': 'ec06',
             'properties': ['read', 'write'],
             'value': None
         })

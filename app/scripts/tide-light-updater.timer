@@ -1,0 +1,11 @@
+[Unit]
+Description=Tide Light Auto-Update Timer (runs on boot)
+Documentation=https://github.com/matsjp/tide-light-v3
+After=network-online.target
+
+[Timer]
+OnBootSec=2min
+Unit=tide-light-updater.service
+
+[Install]
+WantedBy=timers.target

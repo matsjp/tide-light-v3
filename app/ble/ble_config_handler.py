@@ -42,27 +42,6 @@ class BLEConfigHandler:
         """
         self._config_manager = config_manager
         self._lock = threading.Lock()
-        self._last_error = BLE_ERROR_NONE
-    
-    # -----------------------------
-    # Error Code Management
-    # -----------------------------
-    
-    def get_last_error(self) -> int:
-        """Get the last error code."""
-        with self._lock:
-            return self._last_error
-    
-    def _set_error(self, error_code: int) -> int:
-        """Set error code and return it."""
-        with self._lock:
-            self._last_error = error_code
-        return error_code
-    
-    def clear_error(self) -> None:
-        """Clear error code (set to NONE)."""
-        with self._lock:
-            self._last_error = BLE_ERROR_NONE
     
     # -----------------------------
     # Validation Functions
@@ -192,33 +171,6 @@ class BLEConfigHandler:
         
         return (True, BLE_ERROR_NONE, bool(value))
     
-    def validate_full_config(self, json_str: str) -> Tuple[bool, int, Optional[Dict[str, Any]]]:
-        """
-        Validate full config JSON.
-        
-        Args:
-            json_str: JSON string of full configuration
-            
-        Returns:
-            Tuple of (is_valid, error_code, parsed_config)
-        """
-        try:
-            config = json.loads(json_str)
-            
-            if not isinstance(config, dict):
-                return (False, BLE_ERROR_INVALID_FORMAT, None)
-            
-            # Basic structure validation
-            required_keys = ["config_version", "bluetooth", "tide", "led_strip", "color"]
-            for key in required_keys:
-                if key not in config:
-                    return (False, BLE_ERROR_INVALID_FORMAT, None)
-            
-            return (True, BLE_ERROR_NONE, config)
-            
-        except (json.JSONDecodeError, TypeError):
-            return (False, BLE_ERROR_INVALID_FORMAT, None)
-    
     # -----------------------------
     # Configuration Update Functions
     # -----------------------------
@@ -236,7 +188,7 @@ class BLEConfigHandler:
         is_valid, error_code, parsed = self.validate_location(lat_lon_str)
         
         if not is_valid:
-            return self._set_error(error_code)
+            return error_code
         
         lat, lon = parsed
         
@@ -245,10 +197,10 @@ class BLEConfigHandler:
             config["tide"]["location"]["latitude"] = lat
             config["tide"]["location"]["longitude"] = lon
             self._config_manager.update_config(config)
-            return self._set_error(BLE_ERROR_NONE)
+            return BLE_ERROR_NONE
         except Exception as e:
             print(f"[BLEConfigHandler] Error updating location: {e}")
-            return self._set_error(BLE_ERROR_INTERNAL)
+            return BLE_ERROR_INTERNAL
     
     def update_brightness(self, value: int) -> int:
         """
@@ -263,16 +215,16 @@ class BLEConfigHandler:
         is_valid, error_code = self.validate_brightness(value)
         
         if not is_valid:
-            return self._set_error(error_code)
+            return error_code
         
         try:
             config = self._config_manager.get_config()
             config["led_strip"]["brightness"] = value
             self._config_manager.update_config(config)
-            return self._set_error(BLE_ERROR_NONE)
+            return BLE_ERROR_NONE
         except Exception as e:
             print(f"[BLEConfigHandler] Error updating brightness: {e}")
-            return self._set_error(BLE_ERROR_INTERNAL)
+            return BLE_ERROR_INTERNAL
     
     def update_pattern(self, pattern: str) -> int:
         """
@@ -287,16 +239,16 @@ class BLEConfigHandler:
         is_valid, error_code = self.validate_pattern(pattern)
         
         if not is_valid:
-            return self._set_error(error_code)
+            return error_code
         
         try:
             config = self._config_manager.get_config()
             config["color"]["pattern"] = pattern.lower()
             self._config_manager.update_config(config)
-            return self._set_error(BLE_ERROR_NONE)
+            return BLE_ERROR_NONE
         except Exception as e:
             print(f"[BLEConfigHandler] Error updating pattern: {e}")
-            return self._set_error(BLE_ERROR_INTERNAL)
+            return BLE_ERROR_INTERNAL
     
     def update_wave_speed(self, speed_str: str) -> int:
         """
@@ -311,16 +263,16 @@ class BLEConfigHandler:
         is_valid, error_code, parsed = self.validate_wave_speed(speed_str)
         
         if not is_valid:
-            return self._set_error(error_code)
+            return error_code
         
         try:
             config = self._config_manager.get_config()
             config["color"]["wave_speed"] = parsed
             self._config_manager.update_config(config)
-            return self._set_error(BLE_ERROR_NONE)
+            return BLE_ERROR_NONE
         except Exception as e:
             print(f"[BLEConfigHandler] Error updating wave speed: {e}")
-            return self._set_error(BLE_ERROR_INTERNAL)
+            return BLE_ERROR_INTERNAL
     
     def update_led_count(self, value: int) -> int:
         """
@@ -335,16 +287,16 @@ class BLEConfigHandler:
         is_valid, error_code = self.validate_led_count(value)
         
         if not is_valid:
-            return self._set_error(error_code)
+            return error_code
         
         try:
             config = self._config_manager.get_config()
             config["led_strip"]["count"] = value
             self._config_manager.update_config(config)
-            return self._set_error(BLE_ERROR_NONE)
+            return BLE_ERROR_NONE
         except Exception as e:
             print(f"[BLEConfigHandler] Error updating LED count: {e}")
-            return self._set_error(BLE_ERROR_INTERNAL)
+            return BLE_ERROR_INTERNAL
     
     def update_led_invert(self, value: int) -> int:
         """
@@ -359,38 +311,16 @@ class BLEConfigHandler:
         is_valid, error_code, parsed = self.validate_led_invert(value)
         
         if not is_valid:
-            return self._set_error(error_code)
+            return error_code
         
         try:
             config = self._config_manager.get_config()
             config["led_strip"]["invert"] = parsed
             self._config_manager.update_config(config)
-            return self._set_error(BLE_ERROR_NONE)
+            return BLE_ERROR_NONE
         except Exception as e:
             print(f"[BLEConfigHandler] Error updating LED invert: {e}")
-            return self._set_error(BLE_ERROR_INTERNAL)
-    
-    def update_full_config(self, json_str: str) -> int:
-        """
-        Update full configuration.
-        
-        Args:
-            json_str: JSON string of full configuration
-            
-        Returns:
-            Error code (0 = success)
-        """
-        is_valid, error_code, parsed = self.validate_full_config(json_str)
-        
-        if not is_valid:
-            return self._set_error(error_code)
-        
-        try:
-            self._config_manager.update_config(parsed)
-            return self._set_error(BLE_ERROR_NONE)
-        except Exception as e:
-            print(f"[BLEConfigHandler] Error updating full config: {e}")
-            return self._set_error(BLE_ERROR_INTERNAL)
+            return BLE_ERROR_INTERNAL
     
     # -----------------------------
     # Read Functions
@@ -433,11 +363,6 @@ class BLEConfigHandler:
         config = self._config_manager.get_config()
         return 1 if config["led_strip"]["invert"] else 0
     
-    def get_full_config(self) -> str:
-        """Get full configuration as JSON string."""
-        config = self._config_manager.get_config()
-        return json.dumps(config, indent=2)
-    
     def get_ldr_active(self) -> bool:
         """Get current LDR active state."""
         config = self._config_manager.get_config()
@@ -460,8 +385,8 @@ class BLEConfigHandler:
             
             config["ldr"]["enabled"] = enabled
             self._config_manager.update_config(config)
-            return self._set_error(BLE_ERROR_NONE)
+            return BLE_ERROR_NONE
         except Exception as e:
             print(f"[BLEConfigHandler] Error updating LDR: {e}")
-            return self._set_error(BLE_ERROR_INTERNAL)
+            return BLE_ERROR_INTERNAL
 

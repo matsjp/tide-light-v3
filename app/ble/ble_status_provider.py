@@ -40,16 +40,12 @@ class BLEStatusProvider:
         Returns:
             JSON string with tide state, cache info, and system metrics
         """
-        logging.info("[BLE Status Provider] Building status JSON")
         try:
             status = self._build_status_dict()
             # Use compact JSON (no indent) to minimize BLE packet size
-            json_str = json.dumps(status)
-            logging.info(f"[BLE Status Provider] Status JSON size: {len(json_str)} bytes")
-            logging.debug(f"[BLE Status Provider] Status JSON: {json_str}")
-            return json_str
+            return json.dumps(status)
         except Exception as e:
-            logging.exception(f"[BLE Status Provider] Error building status: {e}")
+            logging.exception(f"Error building status: {e}")
             raise
     
     def _build_status_dict(self) -> Dict[str, Any]:

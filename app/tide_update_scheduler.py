@@ -1,5 +1,6 @@
 import threading
 import time
+import logging
 from datetime import datetime, timedelta
 
 class TideUpdateScheduler:
@@ -28,12 +29,16 @@ class TideUpdateScheduler:
         """Set visualizer to notify when data updates."""
         self._visualizer = visualizer
 
+    def run_once(self):
+        """Trigger a single update cycle (public API)."""
+        self._run_once()
+
     def on_config_updated(self, new_config):
         new_lat = new_config["tide"]["location"]["latitude"]
         new_lon = new_config["tide"]["location"]["longitude"]
 
         if new_lat != self.current_lat or new_lon != self.current_lon:
-            print("[Scheduler] Location change detected")
+            logging.info("[Scheduler] Location change detected")
             self.cache.invalidate_all()  # Clears data AND location metadata
 
             self.current_lat = new_lat
@@ -49,7 +54,7 @@ class TideUpdateScheduler:
 
         # Check if cache is empty or missing data for the required range
         if self.cache.is_empty() or not self.cache.has_data_for_range(start, end):
-            print("[Scheduler] Fetching tide data...")
+            logging.info("[Scheduler] Fetching tide data...")
             waterlevels = self.fetcher.fetch_waterlevels(
                 latitude=lat, 
                 longitude=lon, 
@@ -57,13 +62,13 @@ class TideUpdateScheduler:
                 days_forward=self.prefetch_days
             )
             self.cache.insert_waterlevels(waterlevels, lat, lon)
-            print(f"[Scheduler] Inserted {len(waterlevels)} waterlevel events.")
+            logging.info(f"[Scheduler] Inserted {len(waterlevels)} waterlevel events.")
             
             # Notify visualizer of new data
             if self._visualizer:
                 self._visualizer.on_tide_data_updated()
         else:
-            print("[Scheduler] Cache up-to-date.")
+            logging.info("[Scheduler] Cache up-to-date.")
 
     def _run_loop(self):
         while not self._stop_event.is_set():

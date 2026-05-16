@@ -1,5 +1,6 @@
 import threading
 import sys
+import logging
 from typing import Dict, Any
 
 
@@ -33,7 +34,7 @@ class LightController:
         # On Linux with real hardware, the real rpi_ws281x library should be installed
         # On other platforms or when testing, rpi-ws281x-mock should be installed
         if use_mock:
-            print("[LightController] Using MOCK library with console visualization")
+            logging.info("[LightController] Using MOCK library with console visualization")
             try:
                 from led_mock_visualizer import PixelStripVisualizer as PixelStrip
             except ImportError as e:
@@ -41,7 +42,7 @@ class LightController:
                     "Mock visualizer not found. Ensure led_mock_visualizer.py exists."
                 ) from e
         else:
-            print("[LightController] Using REAL library for hardware")
+            logging.info("[LightController] Using REAL library for hardware")
             try:
                 from rpi_ws281x import PixelStrip
             except ImportError as e:
@@ -68,7 +69,7 @@ class LightController:
         """Initialize hardware. Must be called before use."""
         with self._lock:
             self._strip.begin()
-        print("[LightController] LED strip initialized")
+        logging.info("[LightController] LED strip initialized")
     
     def show(self) -> None:
         """Update LED strip with current pixel colors."""
@@ -120,6 +121,6 @@ class LightController:
     
     def cleanup(self) -> None:
         """Clean up resources and turn off LEDs."""
-        print("[LightController] Cleaning up LED strip")
+        logging.info("[LightController] Cleaning up LED strip")
         self.clear()
         self.show()

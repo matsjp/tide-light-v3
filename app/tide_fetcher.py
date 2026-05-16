@@ -1,4 +1,5 @@
-
+import logging
+import time
 from datetime import datetime, timedelta
 from typing import List
 
@@ -26,6 +27,9 @@ class TideFetcher:
         time_from = self._format_time(datetime.now() - timedelta(days=days_back))
         time_to = self._format_time(datetime.now() + timedelta(days=days_forward))
 
+        logging.info(f"[TideFetcher] Fetching tide data for ({latitude}, {longitude}) from {time_from} to {time_to}")
+        
+        start_time = time.time()
         response = self._api.get_location_data(
             longitude,
             latitude,
@@ -33,8 +37,13 @@ class TideFetcher:
             time_to,
             "TAB"
         )
-
-        return parse_waterlevels(response)
+        
+        waterlevels = parse_waterlevels(response)
+        duration = time.time() - start_time
+        
+        logging.info(f"[TideFetcher] Received {len(waterlevels)} waterlevel events in {duration:.2f}s")
+        
+        return waterlevels
 
     @staticmethod
     def _format_time(dt: datetime) -> str:

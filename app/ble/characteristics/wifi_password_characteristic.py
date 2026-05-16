@@ -2,7 +2,7 @@
 WiFi Password Characteristic for Tide Light.
 
 Allows writing WiFi password (write-only for security).
-UUID: 12345678-1234-5678-1234-56789abcdefc
+UUID: ec0c (expands to 0000ec0c-0000-1000-8000-00805f9b34fb)
 Properties: Write (no read)
 """
 
@@ -29,7 +29,7 @@ class WiFiPasswordCharacteristic(Characteristic):
             wifi_handler: WiFiHandler instance with connect_wifi method
         """
         Characteristic.__init__(self, {
-            'uuid': '12345678-1234-5678-1234-56789abcdefc',
+            'uuid': 'ec0c',
             'properties': ['write'],
             'value': None
         })

@@ -49,14 +49,24 @@ class WiFiHandler:
         Scan for available WiFi networks.
         
         Returns:
-            JSON string with array of network objects
+            JSON string with array of ALL network objects sorted by signal strength.
+            Networks are returned via BLE notifications in batches, so no size limit.
         """
         if not self._wifi_manager.is_wifi_available():
             logging.warning("[WiFi Handler] WiFi hardware not available")
             return json.dumps([])
         
         networks = self._wifi_manager.scan_networks()
-        return json.dumps(networks)
+        
+        # Sort by signal strength (strongest first) but return ALL networks
+        networks_sorted = sorted(networks, key=lambda n: n.get('signal', -100), reverse=True)
+        
+        logging.info(f"[WiFi Handler] Returning all {len(networks_sorted)} networks")
+        
+        # Use compact JSON (no spaces) to minimize size
+        json_str = json.dumps(networks_sorted, separators=(',', ':'))
+        logging.info(f"[WiFi Handler] Total JSON size: {len(json_str)} bytes")
+        return json_str
     
     def set_target_ssid(self, ssid: str) -> int:
         """
