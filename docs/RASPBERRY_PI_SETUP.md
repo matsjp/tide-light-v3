@@ -332,9 +332,107 @@ sudo ./install_complete.sh
 
 5. **Prompts for reboot**
 
+### Apply Required Pybleno Patches
+
+**IMPORTANT:** The pybleno library (used for BLE) has two bugs that must be patched before the service will work correctly. These patches are required on ALL systems, regardless of Python version or Linux kernel version.
+
+#### Issue 1: Python 3.11+ File Mode Incompatibility
+
+Python 3.11+ removed the deprecated `'rU'` (universal newline) file mode that pybleno uses.
+
+**Fix:**
+
+```bash
+# Find your Python site-packages directory
+PYBLENO_PATH=$(python3 -c "import site; print(site.getsitepackages()[0])")/pybleno/hci_socket/BluetoothHCI/BluetoothHCI.py
+
+# Edit the file
+sudo nano $PYBLENO_PATH
+```
+
+**Find line 69** (use Ctrl+W to search for `'rU'`):
+```python
+self._r = os.fdopen(self.__r, 'rU')
+```
+
+**Change to:**
+```python
+self._r = os.fdopen(self.__r, 'r')
+```
+
+Save: Ctrl+O, Enter, Ctrl+X
+
+---
+
+#### Issue 2: Linux Kernel 6.8+ HCI Socket Filter Size
+
+Linux kernel 6.8+ added strict validation for HCI socket filter sizes. The kernel expects 16 bytes (with struct padding) but pybleno sends 14 bytes.
+
+**Fix:**
+
+```bash
+# Find your Python site-packages directory
+PYBLENO_HCI=$(python3 -c "import site; print(site.getsitepackages()[0])")/pybleno/hci_socket/Hci.py
+
+# Edit the file
+sudo nano $PYBLENO_HCI
+```
+
+**Find line ~51-59** in the `setSocketFilter()` method (use Ctrl+W to search for `struct.pack("<LLLH"`):
+```python
+filter = struct.pack("<LLLH", typeMask, eventMask1, eventMask2, opcode)
+```
+
+**Change to (add `xx` for 2-byte padding):**
+```python
+filter = struct.pack("<LLLHxx", typeMask, eventMask1, eventMask2, opcode)
+```
+
+Save: Ctrl+O, Enter, Ctrl+X
+
+---
+
+#### Verify Patches Applied
+
+```bash
+# Check patch 1 (should show 'r' not 'rU')
+PYBLENO_PATH=$(python3 -c "import site; print(site.getsitepackages()[0])")/pybleno/hci_socket/BluetoothHCI/BluetoothHCI.py
+grep "os.fdopen(self.__r," $PYBLENO_PATH
+
+# Check patch 2 (should show 'LLLHxx' not 'LLLH')
+PYBLENO_HCI=$(python3 -c "import site; print(site.getsitepackages()[0])")/pybleno/hci_socket/Hci.py
+grep "struct.pack.*LLLH" $PYBLENO_HCI
+```
+
+**Expected output:**
+```
+# Patch 1: Should show 'r' in quotes, not 'rU'
+self._r = os.fdopen(self.__r, 'r')
+
+# Patch 2: Should show 'LLLHxx' in the format string
+filter = struct.pack("<LLLHxx", typeMask, eventMask1, eventMask2, opcode)
+```
+
+---
+
+**Why these patches are required:**
+
+- **Patch 1 (`'rU'` → `'r'`)**: Python 3.11+ removed universal newline mode. Without this patch, pybleno crashes with `ValueError: invalid mode: 'rU'`
+  
+- **Patch 2 (`LLLH` → `LLLHxx`)**: Linux kernel 6.8+ validates HCI filter struct size strictly. The `hci_ufilter` struct is padded to 16 bytes for alignment, but pybleno was sending 14 bytes. The `xx` adds 2 padding bytes. Without this patch, pybleno crashes with `OSError: [Errno 22] Invalid argument`
+
+**References:**
+- Python 3.11 release notes: Removed `'U'` mode from `open()`
+- Linux kernel commit (6.8): Added strict size validation to `bt_copy_from_sockptr()`
+- GitHub Issue: [pybleno #63](https://github.com/Adam-Langley/pybleno/issues/63)
+
+**Tested on:**
+- Raspberry Pi 3B+, Debian 13 Trixie, Kernel 6.6, Python 3.8/3.11/3.13
+- Works with system Python (no need for pyenv or custom Python versions)
+
 ### Reboot
 
-After installation completes:
+After installation completes and patches are applied:
 
 ```bash
 sudo reboot
@@ -838,6 +936,12 @@ When needed:
 - Check browser supports Web Bluetooth (Chrome/Edge, not Firefox/Safari)
 - Check phone OS supports BLE (iOS 10+, Android 5+)
 
+**BLE socket errors (`OSError: [Errno 22]` or `ValueError: invalid mode`):**
+- These errors indicate pybleno patches are missing or incorrectly applied
+- See: **"Apply Required Pybleno Patches"** section in Software Installation
+- Verify patches with the verification commands in that section
+- After applying patches, restart: `sudo systemctl restart tide-light.service`
+
 ### RTC Not Working
 
 **RTC time incorrect after reboot:**
@@ -870,6 +974,20 @@ When needed:
 - Restart WiFi: `sudo systemctl restart wpa_supplicant`
 - Check WiFi enabled: `rfkill list` (should not be blocked)
 - Try Ethernet temporarily to configure via raspi-config
+
+**RF-kill blocking WiFi/Bluetooth:**
+- Check if wireless devices are blocked: `sudo rfkill list`
+- Unblock Bluetooth: `sudo rfkill unblock bluetooth`
+- Unblock WiFi: `sudo rfkill unblock wifi`
+- To make permanent, add to `bluetooth-hci0-up.service` before `hciconfig`:
+  ```bash
+  sudo nano /etc/systemd/system/bluetooth-hci0-up.service
+  ```
+  Add line before `ExecStart=/usr/bin/hciconfig`:
+  ```
+  ExecStartPre=/usr/sbin/rfkill unblock bluetooth
+  ```
+  Then reload: `sudo systemctl daemon-reload && sudo systemctl restart bluetooth-hci0-up`
 
 ### Service Crashes/Restarts
 
