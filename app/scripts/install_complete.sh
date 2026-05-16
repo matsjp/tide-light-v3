@@ -74,7 +74,7 @@ read -p "Install RTC support? (Y/n): " -n 1 -r
 echo
 
 if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-    "$SCRIPT_DIR/setup_rtc_complete.sh"
+    "$SCRIPT_DIR/setup_rtc_complete.sh" --no-reboot
 else
     echo "Skipping RTC setup"
 fi

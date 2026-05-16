@@ -13,12 +13,19 @@
 # Supports DS3231 RTC module (high accuracy, I2C-based)
 #
 # Usage:
-#   sudo ./setup_rtc_complete.sh
+#   sudo ./setup_rtc_complete.sh           # Interactive with reboot prompt
+#   sudo ./setup_rtc_complete.sh --no-reboot  # Skip reboot (for master installer)
 #
-# IMPORTANT: This script will reboot the system after configuration!
+# IMPORTANT: This script will reboot the system after configuration (unless --no-reboot)
 #
 
 set -e  # Exit on error
+
+# Parse command line arguments
+SKIP_REBOOT=false
+if [ "$1" = "--no-reboot" ]; then
+    SKIP_REBOOT=true
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -78,7 +85,11 @@ print_header "Tide Light - Complete RTC Setup"
 
 print_info "This script will configure a DS3231 Real-Time Clock module"
 print_info "for automatic time synchronization when offline."
-print_warning "IMPORTANT: The system will reboot after setup!"
+
+if [ "$SKIP_REBOOT" = false ]; then
+    print_warning "IMPORTANT: The system will reboot after setup!"
+fi
+
 echo
 
 read -p "Continue with RTC setup? (y/N): " -n 1 -r
@@ -360,6 +371,14 @@ echo "     tide-rtc sync-to-rtc    - Write system time to RTC"
 echo "     tide-rtc sync-from-rtc  - Read RTC time to system"
 echo "     tide-rtc logs           - View sync service logs"
 echo
+
+
+# Handle reboot based on --no-reboot flag
+if [ "$SKIP_REBOOT" = true ]; then
+    print_warning "Skipping reboot (--no-reboot flag set)"
+    print_info "RTC will be fully active after system reboot"
+    exit 0
+fi
 
 echo
 read -p "Reboot now? (Y/n): " -n 1 -r
