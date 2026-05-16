@@ -104,7 +104,7 @@ AFTER=$(git rev-parse HEAD)
 # Install/update Python dependencies if requirements.txt changed
 if git diff --name-only "$BEFORE" "$AFTER" | grep -q "app/requirements.txt"; then
     log "requirements.txt changed - updating Python packages..."
-    sudo pip3 install -r app/requirements.txt 2>&1 | logger -t tide-light-updater
+    sudo pip3 install --break-system-packages -r app/requirements.txt 2>&1 | logger -t tide-light-updater
 fi
 
 # Restart service

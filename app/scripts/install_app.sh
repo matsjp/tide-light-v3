@@ -39,7 +39,8 @@ echo -e "${GREEN}[1/2] Installing Python dependencies (as root)...${NC}"
 cd "$APP_DIR"
 
 # Install system-wide with sudo (required for root service to find packages)
-sudo pip3 install -r requirements.txt
+# --break-system-packages is needed on Debian 12+ (Bookworm) due to PEP 668
+sudo pip3 install --break-system-packages -r requirements.txt
 
 echo "  ✓ Python dependencies installed for root user"
 
