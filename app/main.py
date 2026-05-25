@@ -41,8 +41,6 @@ def main():
     )
     
     # Enable DEBUG for BLE-related modules only
-    logging.getLogger('ble').setLevel(logging.DEBUG)
-    logging.getLogger('app.ble').setLevel(logging.DEBUG)
     
     logging.info("Starting Tide Light...")
 
