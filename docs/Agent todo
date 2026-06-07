@@ -1,2 +1,3 @@
 Add this to hwclock setup sudo apt-get install util-linux-extra
 Unblock rfkill wifi and bluetooth on initial install. Make it so it disables the rfkill on every startup
+Ldr needs more work

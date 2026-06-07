@@ -2,6 +2,7 @@ import threading
 import sys
 import logging
 from typing import Dict, Any
+from rpi_ws281x import Color
 
 
 class LightController:
@@ -88,7 +89,7 @@ class LightController:
         """
         with self._lock:
             # Convert RGB to library's color format
-            color = (r << 16) | (g << 8) | b
+            color = Color(g, r, b)
             self._strip.setPixelColor(index, color)
     
     def set_brightness(self, brightness: int) -> None:

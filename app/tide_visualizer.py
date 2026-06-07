@@ -18,6 +18,19 @@ COLOR_BLUE = (0, 0, 255)       # High tide / Always-blue LED
 COLOR_PURPLE = (128, 0, 128)   # Low tide
 COLOR_OFF = (0, 0, 0)          # Off state
 
+# Wave effect colors - contrasting palettes with high variance
+WAVE_OVER_BLUE = [
+    (255, 73, 115),     # Bright red/pink
+    (255, 159, 176),    # Light pink
+    (100, 100, 255)     # Light blue/purple
+]
+
+WAVE_OVER_PURPLE = [
+    (91, 73, 255),      # Dark blue/purple
+    (73, 164, 255),     # Medium cyan
+    (73, 255, 255)      # Bright cyan
+]
+
 
 class TideVisualizer:
     """
@@ -126,7 +139,6 @@ class TideVisualizer:
     def _update_led_positions(self) -> None:
         """Calculate LED positions based on count and invert flag."""
         if self._invert:
-            """TODO: investigate this a bit closer. Strip may have built in invert"""
             # LED 0 is bottom, LED (count-1) is top
             self._top_led = self._led_count - 1
             self._bottom_led = 0
@@ -331,46 +343,32 @@ class TideVisualizer:
         shift_level: int
     ) -> Tuple[int, int, int]:
         """
-        Shift color for cascading wave effect.
+        Get wave color for cascading wave effect.
         
-        Creates 3 distinct color levels for the wave animation:
-        - Blue (0, 0, 255) → 3 levels of cyan
-        - Purple (128, 0, 128) → 3 levels of pink/magenta
+        Returns contrasting wave colors that are opposite to the base color:
+        - Wave over blue → purple shades (3 levels)
+        - Wave over purple → cyan/blue shades (3 levels)
+        - Wave over any other color → purple (for always-blue LED)
         
         Args:
-            color: Base RGB color
-            shift_level: Shift intensity level (0=subtle, 1=medium, 2=strong)
+            color: Base RGB color being overlaid
+            shift_level: Wave intensity level (0=subtle, 1=medium, 2=bright)
             
         Returns:
-            Shifted RGB color
+            Wave color from hardcoded palette
         """
         r, g, b = color
         
-        # Shift toward cyan/magenta depending on base color
-        if b > r and b > g:  # Blue-ish → Cyan
-            # 3 distinct levels of cyan (add green component)
-            # Level 0: slight (30% green), Level 1: medium (50%), Level 2: strong (70%)
-            green_shifts = [100, 150, 200]
-            g = min(255, green_shifts[shift_level])
-            
-        elif r > b and g < r:  # Red-ish or Purple-ish → Pink/Magenta
-            # 3 distinct levels of pink/magenta (boost red and blue)
-            # Level 0: +20, Level 1: +40, Level 2: +60
-            brightness_boosts = [20, 40, 60]
-            boost = brightness_boosts[shift_level]
-            r = min(255, r + boost)
-            b = min(255, b + boost)
-            
+        # Determine base color and return appropriate wave color
+        if color == COLOR_BLUE:
+            # Blue base → purple wave
+            return WAVE_OVER_BLUE[shift_level]
+        elif color == COLOR_PURPLE:
+            # Purple base → cyan/blue wave
+            return WAVE_OVER_PURPLE[shift_level]
         else:
-            # For other colors, add some saturation
-            # (This shouldn't normally be reached in tide visualization)
-            saturation_boosts = [1.2, 1.4, 1.6]
-            boost = saturation_boosts[shift_level]
-            r = min(255, int(r * boost))
-            g = min(255, int(g * boost))
-            b = min(255, int(b * boost))
-        
-        return (r, g, b)
+            # For any other color (including always-blue LED) → purple wave
+            return WAVE_OVER_PURPLE[shift_level]
     
     def _show_error_state(self, blink_on: bool) -> None:
         """
