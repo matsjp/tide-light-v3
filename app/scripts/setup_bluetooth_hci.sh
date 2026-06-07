@@ -54,6 +54,8 @@ BindsTo=sys-subsystem-bluetooth-devices-hci0.device
 
 [Service]
 Type=oneshot
+ExecStartPre=/usr/sbin/rfkill unblock bluetooth
+ExecStartPre=/usr/sbin/rfkill unblock wifi
 ExecStart=/usr/bin/hciconfig hci0 up
 RemainAfterExit=yes
 
@@ -84,6 +86,7 @@ echo
 echo "Changes made:"
 echo "  - bluetoothd service disabled"
 echo "  - bluetooth-hci0-up.service created and enabled"
+echo "  - rfkill unblock commands configured for boot"
 echo "  - HCI0 will be brought up automatically on boot"
 echo
 echo -e "${YELLOW}IMPORTANT: These changes take full effect after reboot${NC}"

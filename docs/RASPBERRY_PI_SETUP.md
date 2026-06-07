@@ -307,11 +307,13 @@ sudo ./install_complete.sh
 
 1. **Step 1 - Install System Dependencies:**
    - Installs required apt packages (python3, pip, git, etc.)
+   - Installs `util-linux-extra` (provides `hwclock` command for RTC sync)
    - Enables `systemd-networkd-wait-online.service` (for auto-updater)
 
 2. **Step 2 - Configure Bluetooth HCI:**
    - Disables `bluetoothd` daemon (conflicts with pybleno)
    - Creates `bluetooth-hci0-up.service` (brings up HCI0 for BLE peripheral mode)
+   - Unblocks rfkill for WiFi and Bluetooth on every boot (prevents soft-blocking)
 
 3. **Step 3 - Setup RTC (Optional):**
    - Prompts whether to install RTC hardware support
@@ -979,15 +981,10 @@ When needed:
 - Check if wireless devices are blocked: `sudo rfkill list`
 - Unblock Bluetooth: `sudo rfkill unblock bluetooth`
 - Unblock WiFi: `sudo rfkill unblock wifi`
-- To make permanent, add to `bluetooth-hci0-up.service` before `hciconfig`:
-  ```bash
-  sudo nano /etc/systemd/system/bluetooth-hci0-up.service
-  ```
-  Add line before `ExecStart=/usr/bin/hciconfig`:
-  ```
-  ExecStartPre=/usr/sbin/rfkill unblock bluetooth
-  ```
-  Then reload: `sudo systemctl daemon-reload && sudo systemctl restart bluetooth-hci0-up`
+- **AUTOMATIC:** The installation script now automatically unblocks both on every boot via `bluetooth-hci0-up.service`
+  - This happens automatically during startup before HCI0 is brought up
+  - No manual intervention required after installation
+- To verify rfkill is being unblocked at boot: `sudo journalctl -u bluetooth-hci0-up.service`
 
 ### Service Crashes/Restarts
 

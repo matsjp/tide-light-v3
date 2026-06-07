@@ -53,7 +53,8 @@ apt-get install -y -qq \
     gcc \
     make \
     build-essential \
-    i2c-tools
+    i2c-tools \
+    util-linux-extra
 
 echo "  ✓ Build tools installed"
 
@@ -76,7 +77,7 @@ echo "Installed packages:"
 echo "  - Bluetooth: bluetooth, bluez, libbluetooth-dev"
 echo "  - Python: python3, python3-pip, python3-dev, python3-dbus"
 echo "  - Build tools: git, gcc, make, build-essential"
-echo "  - Hardware: i2c-tools"
+echo "  - Hardware: i2c-tools, util-linux-extra (hwclock)"
 echo "  - Network: systemd-networkd-wait-online (for proper network-online.target)"
 echo
 
