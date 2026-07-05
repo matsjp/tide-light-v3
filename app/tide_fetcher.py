@@ -22,6 +22,7 @@ class TideFetcher:
     ) -> List[WaterLevel]:
         """
         Fetch tide water levels for a location and time range.
+        Returns empty list on network failure (doesn't crash).
         """
 
         time_from = self._format_time(datetime.now() - timedelta(days=days_back))
@@ -29,21 +30,29 @@ class TideFetcher:
 
         logging.info(f"[TideFetcher] Fetching tide data for ({latitude}, {longitude}) from {time_from} to {time_to}")
         
-        start_time = time.time()
-        response = self._api.get_location_data(
-            longitude,
-            latitude,
-            time_from,
-            time_to,
-            "TAB"
-        )
-        
-        waterlevels = parse_waterlevels(response)
-        duration = time.time() - start_time
-        
-        logging.info(f"[TideFetcher] Received {len(waterlevels)} waterlevel events in {duration:.2f}s")
-        
-        return waterlevels
+        try:
+            start_time = time.time()
+            response = self._api.get_location_data(
+                longitude,
+                latitude,
+                time_from,
+                time_to,
+                "TAB"
+            )
+            
+            if response is None:
+                logging.debug("[TideFetcher] Failed to fetch: API returned None")
+                return []
+            
+            waterlevels = parse_waterlevels(response)
+            duration = time.time() - start_time
+            
+            logging.info(f"[TideFetcher] Received {len(waterlevels)} waterlevel events in {duration:.2f}s")
+            
+            return waterlevels
+        except Exception as e:
+            logging.debug(f"[TideFetcher] Failed to fetch: {type(e).__name__}")
+            return []
 
     @staticmethod
     def _format_time(dt: datetime) -> str:

@@ -17,6 +17,7 @@ class TideUpdateScheduler:
         self.current_lon = config["tide"]["location"]["longitude"]
         
         self._visualizer = None  # Will be set later
+        self._fetch_failed = False  # Track fetch failure state
 
     def start(self):
         self.thread.start()
@@ -61,19 +62,37 @@ class TideUpdateScheduler:
                 days_back=1,  # Include 1 day back to ensure current time is covered
                 days_forward=self.prefetch_days
             )
-            self.cache.insert_waterlevels(waterlevels, lat, lon)
-            logging.info(f"[Scheduler] Inserted {len(waterlevels)} waterlevel events.")
             
-            # Notify visualizer of new data
-            if self._visualizer:
-                self._visualizer.on_tide_data_updated()
+            if waterlevels:  # Only insert if we got data
+                self.cache.insert_waterlevels(waterlevels, lat, lon)
+                logging.info(f"[Scheduler] Inserted {len(waterlevels)} waterlevel events.")
+                self._fetch_failed = False
+                
+                # Notify visualizer of new data
+                if self._visualizer:
+                    self._visualizer.on_tide_data_updated()
+            else:
+                # Empty list returned (API failed or no data)
+                self._fetch_failed = True
+                logging.debug("[Scheduler] Tide data fetch returned no data")
         else:
             logging.info("[Scheduler] Cache up-to-date.")
+            self._fetch_failed = False
 
     def _run_loop(self):
         while not self._stop_event.is_set():
             self._run_once()
-            for _ in range(int(self.interval_seconds)):
+            
+            # Determine wait time based on fetch state and cache state
+            if self._fetch_failed and self.cache.is_empty():
+                # Retry every 60 seconds while waiting for data
+                wait_time = 60
+            else:
+                # Normal 7-day interval
+                wait_time = int(self.interval_seconds)
+            
+            # Sleep in 1-second chunks to allow stop event checking
+            for _ in range(wait_time):
                 if self._stop_event.is_set():
                     break
                 time.sleep(1)

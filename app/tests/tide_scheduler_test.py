@@ -108,6 +108,63 @@ class TestTideUpdateScheduler(unittest.TestCase):
         self.mock_fetcher.fetch_waterlevels.assert_not_called()
         self.mock_cache.insert_waterlevels.assert_not_called()
 
+    def test_run_once_handles_empty_waterlevel_list(self):
+        """Test that empty waterlevel list (network failure) doesn't crash and sets _fetch_failed."""
+        self.mock_cache.is_empty.return_value = True
+        self.mock_fetcher.fetch_waterlevels.return_value = []  # Empty list = failure
+
+        scheduler = TideUpdateScheduler(self.mock_cache, self.mock_fetcher, self.config)
+        scheduler._run_once()
+
+        # Should not insert empty data
+        self.mock_cache.insert_waterlevels.assert_not_called()
+        
+        # Should mark fetch as failed
+        self.assertTrue(scheduler._fetch_failed)
+
+    def test_run_once_clears_fetch_failed_on_success(self):
+        """Test that successful fetch clears the _fetch_failed flag."""
+        self.mock_cache.is_empty.return_value = True
+        self.mock_fetcher.fetch_waterlevels.return_value = self.fake_waterlevels
+        
+        scheduler = TideUpdateScheduler(self.mock_cache, self.mock_fetcher, self.config)
+        scheduler._fetch_failed = True  # Start with failure state
+        scheduler._run_once()
+
+        # Should insert data
+        self.mock_cache.insert_waterlevels.assert_called_once()
+        
+        # Should clear fetch_failed
+        self.assertFalse(scheduler._fetch_failed)
+
+    def test_visualizer_notified_on_successful_fetch(self):
+        """Test that visualizer is notified when data is fetched successfully."""
+        self.mock_cache.is_empty.return_value = True
+        self.mock_fetcher.fetch_waterlevels.return_value = self.fake_waterlevels
+        
+        scheduler = TideUpdateScheduler(self.mock_cache, self.mock_fetcher, self.config)
+        mock_visualizer = MagicMock()
+        scheduler.set_visualizer(mock_visualizer)
+        
+        scheduler._run_once()
+
+        # Visualizer should be notified
+        mock_visualizer.on_tide_data_updated.assert_called_once()
+
+    def test_visualizer_not_notified_on_fetch_failure(self):
+        """Test that visualizer is not notified when fetch fails."""
+        self.mock_cache.is_empty.return_value = True
+        self.mock_fetcher.fetch_waterlevels.return_value = []  # Failure
+        
+        scheduler = TideUpdateScheduler(self.mock_cache, self.mock_fetcher, self.config)
+        mock_visualizer = MagicMock()
+        scheduler.set_visualizer(mock_visualizer)
+        
+        scheduler._run_once()
+
+        # Visualizer should not be notified
+        mock_visualizer.on_tide_data_updated.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
