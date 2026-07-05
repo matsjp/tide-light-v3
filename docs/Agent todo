@@ -4,4 +4,4 @@ Ldr needs more work
 Make an agent analuyse that the code is robust for cases where the user has no internet, and does not crash due to missing data. The light should be able to start up in a state of not having tide data, and be able to receive tide data later and then keep chugging along
 Figure out what causes error blinking
 Figure out why there was a file in app called "n't support scanning : Network is down"
-Add git config --global --add safe.directory /home/pi/tide-light-v3 to setup script
+Add git config --global --add safe.directory /home/pi/tide-light-v3
