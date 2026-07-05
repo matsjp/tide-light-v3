@@ -35,6 +35,16 @@ if [ ! -f "$APP_DIR/main.py" ]; then
     exit 1
 fi
 
+# Configure git safe.directory for root user
+# This is CRITICAL for the auto-updater to work correctly.
+# The repository is cloned by the 'pi' user, but the auto-updater service
+# runs as root. Without this configuration, git will refuse to operate on
+# the repository due to security checks (CVE-2022-24765).
+# Reference: https://github.blog/2022-04-12-git-security-vulnerability-announced/
+git config --global --add safe.directory "$APP_DIR"
+echo "  ✓ Git safe.directory configured"
+echo
+
 echo -e "${GREEN}[1/2] Installing Python dependencies (as root)...${NC}"
 cd "$APP_DIR"
 
