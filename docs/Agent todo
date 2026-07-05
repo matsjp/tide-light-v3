@@ -4,10 +4,4 @@ Ldr needs more work
 Make an agent analuyse that the code is robust for cases where the user has no internet, and does not crash due to missing data. The light should be able to start up in a state of not having tide data, and be able to receive tide data later and then keep chugging along
 Figure out what causes error blinking
 Figure out why there was a file in app called "n't support scanning : Network is down"
-Auto update problem [Auto-Update] Restarting tide-light service...
-==== AUTHENTICATING FOR org.freedesktop.systemd1.manage-units ====
-Authentication is required to restart 'tide-light.service'.
-Authenticating as: pi
-Password: Failed to restart tide-light.service: Connection timed out
-See system logs and 'systemctl status tide-light.service' for details.
-polkit-agent-helper-1: pam_authenticate failed: Authentication failure
+Add git config --global --add safe.directory /home/pi/tide-light-v3 to setup script
