@@ -152,7 +152,15 @@ class TideVisualizer:
             self._middle_end = self._led_count - 2
         
         self._num_middle_leds = self._middle_end - self._middle_start + 1
-        self._always_blue_led_index = self._num_middle_leds - 1  # Last middle LED in array
+        
+        # Always-blue LED position depends on invert flag
+        # When inverted, it should also be inverted to the opposite end
+        if self._invert:
+            # First middle LED (bottom when strip is inverted)
+            self._always_blue_led_index = 0
+        else:
+            # Last middle LED (bottom when strip is normal)
+            self._always_blue_led_index = self._num_middle_leds - 1
     
     def _run_loop(self) -> None:
         """
@@ -256,8 +264,8 @@ class TideVisualizer:
         # When invert=True: array index 0 = bottom, index (num_middle-1) = top
         for i in range(num_blue):
             if self._invert:
-                # Inverted: fill from low to high indices (bottom to top physically)
-                colors[i] = COLOR_BLUE
+                # Inverted: fill from index 1 upward (skip always-blue at index 0)
+                colors[i + 1] = COLOR_BLUE
             else:
                 # Normal: fill from high to low indices (bottom to top physically)
                 colors[num_middle - 2 - i] = COLOR_BLUE
@@ -265,8 +273,10 @@ class TideVisualizer:
         # Rest are PURPLE
         for i in range(num_blue, num_middle - 1):
             if self._invert:
-                colors[i] = COLOR_PURPLE
+                # Inverted: fill remaining indices with offset (skip always-blue at index 0)
+                colors[i + 1] = COLOR_PURPLE
             else:
+                # Normal: fill from high to low indices (bottom to top physically)
                 colors[num_middle - 2 - i] = COLOR_PURPLE
         
         return colors
