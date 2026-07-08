@@ -33,14 +33,19 @@ def on_config_changed(config, scheduler, visualizer, ldr):
 
 def main():
     # Configure logging
-    # Option 1: Debug for BLE only, Info for everything else
+    import sys
+    
+    # Clear any existing handlers
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    
+    # Configure logging to output to stderr (which is console)
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        stream=sys.stderr
     )
-    
-    # Enable DEBUG for BLE-related modules only
     
     logging.info("Starting Tide Light...")
 

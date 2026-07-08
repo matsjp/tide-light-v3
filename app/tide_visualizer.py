@@ -139,28 +139,28 @@ class TideVisualizer:
     def _update_led_positions(self) -> None:
         """Calculate LED positions based on count and invert flag."""
         if self._invert:
-            # LED 0 is bottom, LED (count-1) is top
-            self._top_led = self._led_count - 1
-            self._bottom_led = 0
+            # When inverted: LED 0 is top, LED (count-1) is bottom
+            self._top_led = 0
+            self._bottom_led = self._led_count - 1
             self._middle_start = 1
             self._middle_end = self._led_count - 2
         else:
-            # LED 0 is top, LED (count-1) is bottom
-            self._top_led = 0
-            self._bottom_led = self._led_count - 1
+            # Normal: LED 0 is bottom, LED (count-1) is top
+            self._top_led = self._led_count - 1
+            self._bottom_led = 0
             self._middle_start = 1
             self._middle_end = self._led_count - 2
         
         self._num_middle_leds = self._middle_end - self._middle_start + 1
         
         # Always-blue LED position depends on invert flag
-        # When inverted, it should also be inverted to the opposite end
+        # The always-blue LED should always be at the physically BOTTOM (where wiring is)
         if self._invert:
-            # First middle LED (bottom when strip is inverted)
-            self._always_blue_led_index = 0
-        else:
-            # Last middle LED (bottom when strip is normal)
+            # Inverted: bottom is at the high array index
             self._always_blue_led_index = self._num_middle_leds - 1
+        else:
+            # Normal: bottom is at array index 0
+            self._always_blue_led_index = 0
     
     def _run_loop(self) -> None:
         """
@@ -260,24 +260,24 @@ class TideVisualizer:
         num_blue = int(progress * (num_middle - 1))
         
         # Fill from bottom up (respecting invert flag)
-        # When invert=False: array index 0 = top, index (num_middle-1) = bottom
-        # When invert=True: array index 0 = bottom, index (num_middle-1) = top
+        # When invert=False: array index 0 = bottom, index (num_middle-1) = top
+        # When invert=True: array index 0 = top, index (num_middle-1) = bottom
         for i in range(num_blue):
             if self._invert:
-                # Inverted: fill from index 1 upward (skip always-blue at index 0)
-                colors[i + 1] = COLOR_BLUE
-            else:
-                # Normal: fill from high to low indices (bottom to top physically)
+                # Inverted: fill from high to low indices (bottom to top physically)
                 colors[num_middle - 2 - i] = COLOR_BLUE
+            else:
+                # Normal: fill from index 0 upward (bottom to top physically)
+                colors[i] = COLOR_BLUE
         
         # Rest are PURPLE
         for i in range(num_blue, num_middle - 1):
             if self._invert:
-                # Inverted: fill remaining indices with offset (skip always-blue at index 0)
-                colors[i + 1] = COLOR_PURPLE
-            else:
-                # Normal: fill from high to low indices (bottom to top physically)
+                # Inverted: fill from high to low indices (bottom to top physically)
                 colors[num_middle - 2 - i] = COLOR_PURPLE
+            else:
+                # Normal: fill from index num_blue upward (bottom to top physically)
+                colors[i] = COLOR_PURPLE
         
         return colors
     
@@ -325,18 +325,18 @@ class TideVisualizer:
                 # When inverted: higher array indices = physical top, lower = physical bottom
                 if direction == "rising":
                     # Wave moves UP physically (toward higher indices)
-                    pos = wave_position + offset
+                    pos = (num_middle - 2 - wave_position) - offset
                 else:  # falling
                     # Wave moves DOWN physically (toward lower indices)
-                    pos = (num_middle - 2 - wave_position) - offset
+                    pos = wave_position + offset
             else:
                 # When normal: lower array indices = physical top, higher = physical bottom
                 if direction == "rising":
                     # Wave moves UP physically (toward lower indices)
-                    pos = (num_middle - 2 - wave_position) - offset
+                    pos = wave_position + offset
                 else:  # falling
                     # Wave moves DOWN physically (toward higher indices)
-                    pos = wave_position + offset
+                    pos = (num_middle - 2 - wave_position) - offset
             
             # Include all middle LEDs (including always-blue LED)
             if 0 <= pos < num_middle:
