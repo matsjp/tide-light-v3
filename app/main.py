@@ -78,8 +78,7 @@ def main():
         prefetch_days=7,
         interval_days=7
     )
-    scheduler.start()
-
+    
     # Initialize LED light system
     logging.info("Initializing LED strip...")
     light = LightController(config)
@@ -95,8 +94,11 @@ def main():
         config=config
     )
     
-    # Connect scheduler and visualizer
+    # Connect scheduler and visualizer BEFORE starting scheduler
     scheduler.set_visualizer(visualizer)
+    
+    # NOW start the scheduler background thread
+    scheduler.start()
     
     # Start visualizer
     visualizer.start()
