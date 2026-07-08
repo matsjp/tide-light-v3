@@ -57,7 +57,6 @@ class LightController:
             pin=self.GPIO_PIN,
             freq_hz=self.LED_FREQ_HZ,
             dma=self.DMA_CHANNEL,
-            invert=led_config["invert"],
             brightness=led_config["brightness"],
             strip_type=self.STRIP_TYPE_GRB
         )
