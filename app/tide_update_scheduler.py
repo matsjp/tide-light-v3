@@ -11,6 +11,7 @@ class TideUpdateScheduler:
         self.prefetch_days = prefetch_days
         self.interval_seconds = interval_days * 24 * 60 * 60
         self._stop_event = threading.Event()
+        self._wake_event = threading.Event()    # Allows external callers to interrupt sleep
         self._run_once_lock = threading.Lock()  # Prevent concurrent _run_once() calls
         self.thread = threading.Thread(target=self._run_loop, daemon=True)
 
@@ -25,6 +26,7 @@ class TideUpdateScheduler:
 
     def stop(self):
         self._stop_event.set()
+        self._wake_event.set()  # Unblock any ongoing wait so the loop can exit
         self.thread.join()
 
     def set_visualizer(self, visualizer):
@@ -47,6 +49,7 @@ class TideUpdateScheduler:
             self.current_lon = new_lon
 
             self._run_once()  # Fetch new data and store new location in metadata
+            self._wake_event.set()  # Interrupt any ongoing sleep so retry interval is recalculated
 
     def _run_once(self):
         """
@@ -96,8 +99,7 @@ class TideUpdateScheduler:
                 # Normal 7-day interval
                 wait_time = int(self.interval_seconds)
             
-            # Sleep in 1-second chunks to allow stop event checking
-            for _ in range(wait_time):
-                if self._stop_event.is_set():
-                    break
-                time.sleep(1)
+            # Sleep until next cycle, but allow early wake-up via _wake_event
+            # (e.g. when a location change fails and we need to reschedule to 60s retries)
+            self._wake_event.wait(timeout=wait_time)
+            self._wake_event.clear()
