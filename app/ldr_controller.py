@@ -8,6 +8,8 @@ import time
 import logging
 from typing import Optional, Callable
 
+LDR_PIN = 17  # BCM GPIO pin for LDR RC timing circuit
+
 # Import GPIO library
 try:
     from RPi import GPIO
@@ -36,7 +38,7 @@ class LdrController:
             on_brightness_change: Callback to update LED brightness
         """
         self._enabled = config.get("ldr", {}).get("enabled", False)
-        self._pin = config.get("ldr", {}).get("pin", 11)
+        self._pin = LDR_PIN
         self._configured_brightness = config.get("led_strip", {}).get("brightness", 128)
         self._min_brightness = 5
         self._max_brightness = 255
