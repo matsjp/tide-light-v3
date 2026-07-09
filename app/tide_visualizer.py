@@ -253,7 +253,7 @@ class TideVisualizer:
         """
         colors = [COLOR_OFF] * num_middle
         
-        # Last middle LED (index num_middle-1) always BLUE
+        # Always-blue LED (adjacent to bottom) always BLUE
         colors[self._always_blue_led_index] = COLOR_BLUE
         
         # Calculate how many LEDs should be BLUE (excluding always-blue LED)
@@ -267,8 +267,8 @@ class TideVisualizer:
                 # Inverted: fill from high to low indices (bottom to top physically)
                 colors[num_middle - 2 - i] = COLOR_BLUE
             else:
-                # Normal: fill from index 0 upward (bottom to top physically)
-                colors[i] = COLOR_BLUE
+                # Normal: fill from index 1 upward (skip perma-blue at index 0)
+                colors[i + 1] = COLOR_BLUE
         
         # Rest are PURPLE
         for i in range(num_blue, num_middle - 1):
@@ -276,8 +276,8 @@ class TideVisualizer:
                 # Inverted: fill from high to low indices (bottom to top physically)
                 colors[num_middle - 2 - i] = COLOR_PURPLE
             else:
-                # Normal: fill from index num_blue upward (bottom to top physically)
-                colors[i] = COLOR_PURPLE
+                # Normal: fill from index num_blue+1 upward (skip perma-blue at index 0)
+                colors[i + 1] = COLOR_PURPLE
         
         return colors
     
