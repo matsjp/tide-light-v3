@@ -171,7 +171,11 @@ class LdrController:
     def _rc_time(self, pin: int) -> int:
         """
         Measure RC time by charging capacitor and counting time to discharge.
-        
+
+        Args:
+            pin: BCM GPIO pin number (NOT physical board pin number).
+                 e.g. physical pin 11 on the Pi header = BCM GPIO 17.
+
         Returns:
             Count value (higher = darker, lower = brighter)
         """
