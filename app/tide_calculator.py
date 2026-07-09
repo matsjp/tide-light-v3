@@ -11,7 +11,7 @@ from tide_models import WaterLevel, WaterLevelFlag
 class TideState:
     """Represents current tide state at a specific time."""
     direction: str  # "rising" or "falling"
-    progress: float  # 0.0 (low tide) to 1.0 (high tide)
+    progress: float  # 0.0 to 1.0 (fraction of time elapsed in current half-cycle)
     next_event: WaterLevel  # Next tide event (high or low)
     last_event: WaterLevel  # Previous tide event
 

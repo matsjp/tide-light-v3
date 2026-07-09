@@ -201,8 +201,12 @@ class TideVisualizer:
             # Set direction indicators
             self._set_direction_indicators(tide_state.direction)
             
+            # For falling tide, invert progress: progress=0 (just after high tide) should
+            # show maximum blue, progress=1 (approaching low tide) should show minimum blue.
+            display_progress = tide_state.progress if tide_state.direction == "rising" else 1.0 - tide_state.progress
+            
             # Calculate base middle colors
-            middle_colors = self._calculate_middle_colors(tide_state.progress, num_middle)
+            middle_colors = self._calculate_middle_colors(display_progress, num_middle)
             
             # Apply wave animation if enabled
             if pattern == "wave":
